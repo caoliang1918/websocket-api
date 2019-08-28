@@ -1,0 +1,98 @@
+package org.zhongweixian.client;
+
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
+import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
+import io.netty.handler.codec.http.websocketx.WebSocketVersion;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.timeout.IdleStateHandler;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.zhongweixian.listener.ConnectionListener;
+
+import javax.net.ssl.SSLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
+
+public class WebSocketClient {
+    private Logger logger = LoggerFactory.getLogger(WebSocketClient.class);
+
+    private URI websocketURI;
+    private int port;
+    private SslContext sslContext;
+    private EventLoopGroup group = new NioEventLoopGroup(0);
+    private Bootstrap bootstrap = new Bootstrap();
+
+    private static final int HEART_TIME = 10;
+
+    public WebSocketClient(String url) throws URISyntaxException, SSLException {
+        this.websocketURI = new URI(url);
+        boolean isSsl = "wss".equalsIgnoreCase(websocketURI.getScheme());
+        port = websocketURI.getPort();
+        if (isSsl) {
+            sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            if (port == -1) {
+                port = 443;
+            }
+        }
+        bootstrap.option(ChannelOption.TCP_NODELAY, true).group(group).channel(NioSocketChannel.class)
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+                        ChannelPipeline pipeline = ch.pipeline();
+                        if (sslContext != null) {
+                            pipeline.addLast("ssl", sslContext.newHandler(ch.alloc(), websocketURI.getHost(), port));
+                        }
+                        pipeline.addLast("idle", new IdleStateHandler(0, HEART_TIME, 0));
+                        pipeline.addLast(new HttpClientCodec(), new HttpObjectAggregator(8192));
+                        pipeline.addLast("hookedHandler", new WebSocketClientHandler());
+                    }
+                });
+    }
+
+    public Connection connection(ConnectionListener listener) throws Exception {
+        return connection(listener, null, 5000);
+    }
+
+    /**
+     * @param listener          监听接口
+     * @param payload           认证的json
+     * @param connectionTimeout 超时毫秒数
+     * @return
+     * @throws Exception
+     */
+    public Connection connection(ConnectionListener listener, String payload, int connectionTimeout) throws Exception {
+        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeout);
+        HttpHeaders httpHeaders = new DefaultHttpHeaders();
+        WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(websocketURI, WebSocketVersion.V13,
+                null, true, httpHeaders);
+        Channel channel = bootstrap.connect(websocketURI.getHost(), port).sync().channel();
+        logger.info("websocket client connected , channelId:{}", channel.id());
+        WebSocketClientHandler clientHandler = (WebSocketClientHandler) channel.pipeline().get("hookedHandler");
+        clientHandler.setConnectionListener(payload, listener);
+        clientHandler.setHandshaker(handshaker);
+        handshaker.handshake(channel);
+        //可以使用ChannelFuture来做断开检测
+        clientHandler.handshakeFuture().sync();
+        return new WsConnection(channel);
+    }
+
+
+    public void close() {
+        if (group != null) {
+            group.shutdownGracefully();
+        }
+    }
+}
