@@ -63,6 +63,7 @@
             scm:git:https://github.com/caoliang1918/websocket-api.git
         </developerConnection>
         <url>https://github.com/caoliang1918/websocket-api</url>
+        <tag>1.0.0</tag>
     </scm>
 
     <licenses>
@@ -74,6 +75,18 @@
         </license>
     </licenses>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <profiles>
         <profile>

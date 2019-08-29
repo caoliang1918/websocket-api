@@ -1,7 +1,6 @@
 # websocket-client
 
-
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.zhongweixian/websocket-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.zhongweixian/websocket-client/)
+[![Maven Central](https://img.shields.io/maven-central/v/org.zhongweixian/websocket-api.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22org.zhongweixian%22%20AND%20a:%22websocket-api%22)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html) 
 
 
@@ -21,7 +20,7 @@ With `Maven Central` repositories (stable releases only):
 ## start server
 
 ```java
- WebSocketServer webSocketServer = new WebSocketServer(9599, 60, "ws", new ConnectionListener() {
+ WebSocketServer webSocketServer = new WebSocketServer(8190, 60, "ws", new ConnectionListener() {
             @Override
             public void connect(Channel channel) throws Exception {
                 logger.info("channel {} is connect", channel.id());
@@ -56,16 +55,16 @@ With `Maven Central` repositories (stable releases only):
 
 ```
 
-##start client
+## start client
 ```java
 
-/**
+        /**
          * 启动ws客户端
          */
         WebSocketClient client = new WebSocketClient("ws://192.168.181.178:8190/ws");
 
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1000; i++) {
             client.connection(new ConnectionListener() {
                 @Override
                 public void onClose(Channel channel, int closeCode, String reason) {
