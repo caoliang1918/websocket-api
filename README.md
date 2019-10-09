@@ -55,7 +55,7 @@ With `Maven Central` repositories (stable releases only):
 
 ```
 
-## start client
+## websocket client(不重连)
 ```java
 
         /**
@@ -98,4 +98,52 @@ With `Maven Central` repositories (stable releases only):
             });
             Thread.sleep(10);
         }
+```
+
+## websocket client (支持重连)
+
+```java
+
+    public static void main(String[] args) {
+        try {
+            String login = "{\"cmd\":\"connect\",\"agentId\":\"1000\",\"sip\":\"\",\"companyId\":129,\"businessIds\":[831,823],\"operatorType\":1}";
+            WsClient client = new WsClient("ws://192.168.183.145:8190/ws", login, new ConnectionListener() {
+                @Override
+                public void onClose(Channel channel, int closeCode, String reason) {
+
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+
+                }
+
+                @Override
+                public void onFail(int status, String reason) {
+
+                }
+
+                @Override
+                public void onMessage(Channel channel, String text) throws Exception {
+                    System.out.println(text);
+                }
+
+                @Override
+                public void onMessage(Channel channel, ByteBuf byteBuf) throws Exception {
+
+                }
+
+                @Override
+                public void connect(Channel channel) throws Exception {
+                    System.out.println("连接成功 ");
+                }
+            });
+            new Thread(client).start();
+
+            System.out.println(" start ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
 ```
