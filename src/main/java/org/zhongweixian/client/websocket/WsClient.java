@@ -1,7 +1,6 @@
-package org.zhongweixian.client;
+package org.zhongweixian.client.websocket;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -20,6 +19,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
 import org.zhongweixian.listener.ConnectionListener;
 
 import java.net.URI;
@@ -66,7 +66,7 @@ public class WsClient implements Runnable {
      */
     private Integer MAX_TIME = Integer.MAX_VALUE;
 
-    public WsClient(String url, String payload , ConnectionListener listener) throws Exception {
+    public WsClient(String url, String payload, ConnectionListener listener) throws Exception {
         this.websocketURI = new URI(url);
         boolean isSsl = "wss".equalsIgnoreCase(websocketURI.getScheme());
         port = websocketURI.getPort();
@@ -88,8 +88,6 @@ public class WsClient implements Runnable {
                         pipeline.addLast(new HttpClientCodec(), new HttpObjectAggregator(8192));
                         WebSocketClientHandler clientHandler = new WebSocketClientHandler();
                         clientHandler.setConnectionListener(payload, listener);
-
-
 
 
                         pipeline.addLast("hookedHandler", clientHandler);
@@ -144,6 +142,7 @@ public class WsClient implements Runnable {
     public void sendMessage(String message) {
         if (channel == null || !channel.isActive()) {
             logger.warn("channel is null or clone {}:{}", websocketURI.getHost(), port);
+            return;
         }
         channel.writeAndFlush(new TextWebSocketFrame(message));
     }
@@ -156,11 +155,12 @@ public class WsClient implements Runnable {
     public void sendMessageListener(String message) {
         if (channel == null || !channel.isActive()) {
             logger.warn("channel is null or clone {}:{}", websocketURI.getHost(), port);
+            return;
         }
         channel.writeAndFlush(new TextWebSocketFrame(message)).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-
+                logger.info("send after result:{}", future);
             }
         });
     }
@@ -169,4 +169,5 @@ public class WsClient implements Runnable {
     public void run() {
         connect();
     }
+
 }

@@ -1,4 +1,4 @@
-package org.zhongweixian.client;
+package org.zhongweixian.client.websocket;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -16,9 +16,9 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
 import org.zhongweixian.listener.ConnectionListener;
 
 import javax.net.ssl.SSLException;
