@@ -1,16 +1,15 @@
-package org.zhongweixian.client.tcp;
+package com.yuntongxun.api.client.tcp;
 
+import com.yuntongxun.api.client.tcp.handler.SimpleClientHandler;
+import com.yuntongxun.api.listener.ConnectionListener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zhongweixian.client.tcp.handler.SimpleClientHandler;
-import org.zhongweixian.listener.ConnectionListener;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

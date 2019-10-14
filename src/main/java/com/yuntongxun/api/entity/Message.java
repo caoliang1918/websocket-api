@@ -1,4 +1,4 @@
-package org.zhongweixian.entity;
+package com.yuntongxun.api.entity;
 
 import java.io.Serializable;
 

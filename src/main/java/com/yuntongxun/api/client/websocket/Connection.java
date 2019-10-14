@@ -1,4 +1,4 @@
-package org.zhongweixian.client.websocket;
+package com.yuntongxun.api.client.websocket;
 
 
 public interface Connection {

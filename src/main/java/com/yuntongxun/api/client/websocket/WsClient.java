@@ -1,5 +1,6 @@
-package org.zhongweixian.client.websocket;
+package com.yuntongxun.api.client.websocket;
 
+import com.yuntongxun.api.listener.ConnectionListener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -19,8 +20,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
-import org.zhongweixian.listener.ConnectionListener;
+import com.yuntongxun.api.client.websocket.handler.WebSocketClientHandler;
 
 import java.net.URI;
 

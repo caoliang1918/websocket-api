@@ -1,14 +1,12 @@
-package org.zhongweixian.client.tcp.handler;
+package com.yuntongxun.api.client.tcp.handler;
 
-import com.alibaba.fastjson.JSONObject;
+import com.yuntongxun.api.listener.ConnectionListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zhongweixian.listener.ConnectionListener;
 
 /**
  * Created by caoliang on 2019-10-11
@@ -21,6 +19,15 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     public SimpleClientHandler(ConnectionListener listener) {
         this.listener = listener;
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        try {
+            listener.onMessage(ctx.channel(), msg.toString());
+        } catch (Exception e) {
+            logger.error("read message error:{}", msg);
+        }
     }
 
     @Override

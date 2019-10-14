@@ -1,7 +1,8 @@
-package org.zhongweixian.server;
+package com.yuntongxun.api.server;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.yuntongxun.api.listener.ConnectionListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -10,8 +11,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zhongweixian.listener.ConnectionListener;
-import org.zhongweixian.entity.Message;
+import com.yuntongxun.api.entity.Message;
 
 @ChannelHandler.Sharable
 public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {

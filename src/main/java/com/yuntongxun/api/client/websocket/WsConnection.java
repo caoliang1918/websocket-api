@@ -1,4 +1,4 @@
-package org.zhongweixian.client.websocket;
+package com.yuntongxun.api.client.websocket;
 
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
