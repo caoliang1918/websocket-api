@@ -1,6 +1,6 @@
-package com.yuntongxun.api.server;
+package org.zhongweixian.server;
 
-import com.yuntongxun.api.listener.ConnectionListener;
+import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
@@ -22,6 +22,8 @@ public class WebSocketServer {
     private Integer heart = 60;
     private ConnectionListener connectionListener;
     private String path = "ws";
+    private Integer parentGroupSize = 2;
+    private Integer childGroupSize = 4;
 
     private EventLoopGroup bossGroup = null;
     private EventLoopGroup workGroup = null;
@@ -51,9 +53,18 @@ public class WebSocketServer {
         this.connectionListener = connectionListener;
     }
 
+    public WebSocketServer(int port, Integer heart, String path, Integer parentGroupSize , Integer childGroupSize , ConnectionListener connectionListener) {
+        this.port = port;
+        this.heart = heart;
+        this.path = path;
+        this.parentGroupSize = parentGroupSize;
+        this.childGroupSize = childGroupSize;
+        this.connectionListener = connectionListener;
+    }
+
     public void start() {
-        bossGroup = new NioEventLoopGroup();
-        workGroup = new NioEventLoopGroup();
+        bossGroup = new NioEventLoopGroup(parentGroupSize);
+        workGroup = new NioEventLoopGroup(childGroupSize);
 
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();

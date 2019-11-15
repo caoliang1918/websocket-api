@@ -1,6 +1,6 @@
-package com.yuntongxun.api.client.websocket;
+package org.zhongweixian.client.websocket;
 
-import com.yuntongxun.api.listener.ConnectionListener;
+import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -20,7 +20,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.yuntongxun.api.client.websocket.handler.WebSocketClientHandler;
+import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
 
 import java.net.URI;
 
@@ -35,16 +35,15 @@ public class WsClient implements Runnable {
     private URI websocketURI;
     private int port;
     private SslContext sslContext;
-    private EventLoopGroup group = new NioEventLoopGroup(0);
+    private EventLoopGroup group = new NioEventLoopGroup();
     private Bootstrap bootstrap = new Bootstrap();
 
-    private static final int HEART_TIME = 10;
     private Channel channel;
 
     /**
      * 心跳时间
      */
-    private Integer heart = 5;
+    private Integer heart = 10;
 
     /**
      * 心跳内容
@@ -66,7 +65,7 @@ public class WsClient implements Runnable {
      */
     private Integer MAX_TIME = Integer.MAX_VALUE;
 
-    public WsClient(String url, String payload, ConnectionListener listener) throws Exception {
+    public WsClient(String url, final String payload, final ConnectionListener listener) throws Exception {
         this.websocketURI = new URI(url);
         boolean isSsl = "wss".equalsIgnoreCase(websocketURI.getScheme());
         port = websocketURI.getPort();
@@ -84,7 +83,7 @@ public class WsClient implements Runnable {
                         if (sslContext != null) {
                             pipeline.addLast("ssl", sslContext.newHandler(ch.alloc(), websocketURI.getHost(), port));
                         }
-                        pipeline.addLast("idle", new IdleStateHandler(0, HEART_TIME, 0));
+                        pipeline.addLast("idle", new IdleStateHandler(0, heart, 0));
                         pipeline.addLast(new HttpClientCodec(), new HttpObjectAggregator(8192));
                         WebSocketClientHandler clientHandler = new WebSocketClientHandler();
                         clientHandler.setConnectionListener(payload, listener);
@@ -170,4 +169,23 @@ public class WsClient implements Runnable {
         connect();
     }
 
+
+    public boolean isActive() {
+        return channel == null || channel.isActive();
+    }
+
+    public void close() {
+        autoConnect = false;
+        if (channel != null) {
+            channel.close();
+        }
+    }
+
+    public Boolean getAutoConnect() {
+        return autoConnect;
+    }
+
+    public void setAutoConnect(Boolean autoConnect) {
+        this.autoConnect = autoConnect;
+    }
 }

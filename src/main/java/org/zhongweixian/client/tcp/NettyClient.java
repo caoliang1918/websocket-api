@@ -1,7 +1,7 @@
-package com.yuntongxun.api.client.tcp;
+package org.zhongweixian.client.tcp;
 
-import com.yuntongxun.api.client.tcp.handler.SimpleClientHandler;
-import com.yuntongxun.api.listener.ConnectionListener;
+import org.zhongweixian.client.tcp.handler.SimpleClientHandler;
+import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -133,7 +133,10 @@ public class NettyClient implements Runnable {
             } catch (InterruptedException e) {
                 logger.error("{}", e);
             }
-            logger.info("准备重连 {}:{} 第 {} 次", host, port, TRY_TIMES.getAndIncrement());
+            if (!autoConnect) {
+                return;
+            }
+            logger.info("pre to reconnect {}:{} for {} times", host, port, TRY_TIMES.getAndIncrement());
             connect();
         }
     }
@@ -165,7 +168,7 @@ public class NettyClient implements Runnable {
         channel.writeAndFlush(message).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-                logger.info("send after result:{}", future);
+                logger.info("send after result:{}", future.isSuccess());
             }
         });
     }

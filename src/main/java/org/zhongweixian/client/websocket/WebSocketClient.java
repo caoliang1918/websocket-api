@@ -1,6 +1,6 @@
-package com.yuntongxun.api.client.websocket;
+package org.zhongweixian.client.websocket;
 
-import com.yuntongxun.api.listener.ConnectionListener;
+import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -19,7 +19,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.yuntongxun.api.client.websocket.handler.WebSocketClientHandler;
+import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
 
 import javax.net.ssl.SSLException;
 import java.net.URI;
@@ -32,12 +32,19 @@ public class WebSocketClient {
     private URI websocketURI;
     private int port;
     private SslContext sslContext;
-    private EventLoopGroup group = new NioEventLoopGroup(0);
-    private Bootstrap bootstrap = new Bootstrap();
+    private EventLoopGroup group = null;
+    private Bootstrap bootstrap = null;
 
     private static final int HEART_TIME = 10;
 
-    public WebSocketClient(String url) throws URISyntaxException, SSLException {
+    public WebSocketClient(String url, Integer threads) throws URISyntaxException, SSLException {
+
+        if (threads == null || threads < 0) {
+            threads = 1;
+        }
+        group = new NioEventLoopGroup(threads);
+        bootstrap = new Bootstrap();
+
         this.websocketURI = new URI(url);
         boolean isSsl = "wss".equalsIgnoreCase(websocketURI.getScheme());
         port = websocketURI.getPort();

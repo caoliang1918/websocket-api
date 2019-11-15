@@ -1,6 +1,6 @@
-package com.yuntongxun.api.client.websocket.handler;
+package org.zhongweixian.client.websocket.handler;
 
-import com.yuntongxun.api.listener.ConnectionListener;
+import org.zhongweixian.listener.ConnectionListener;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.websocketx.*;
@@ -23,7 +23,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
         return connectionListener;
     }
 
-    public void setConnectionListener(String payload, ConnectionListener connectionListener) {
+    public void setConnectionListener(final String payload, final ConnectionListener connectionListener) {
         this.payload = payload;
         this.connectionListener = connectionListener;
     }
@@ -78,13 +78,22 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         super.channelRegistered(ctx);
-        logger.info("channelRegistered ， channelId:{}", ctx.channel().id());
+        logger.info("channelRegistered, channelId:{}", ctx.channel().id());
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.error("连接中断, channelId:{}  , active : {}", ctx.channel().id(), ctx.channel().isActive());
+        logger.error("连接中断, channelId:{}, active : {}", ctx.channel().id(), ctx.channel().isActive());
         connectionListener.onClose(ctx.channel(), 500, "channelInactive");
+        ctx.close();
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        //异常时断开连接
+        logger.error("异常断开:{}", cause);
+        connectionListener.onClose(ctx.channel(), 505, cause.getMessage());
+        ctx.close();
     }
 
     @Override

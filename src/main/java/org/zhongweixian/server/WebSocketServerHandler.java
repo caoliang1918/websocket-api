@@ -1,8 +1,8 @@
-package com.yuntongxun.api.server;
+package org.zhongweixian.server;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.yuntongxun.api.listener.ConnectionListener;
+import org.zhongweixian.listener.ConnectionListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -11,7 +11,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.yuntongxun.api.entity.Message;
+import org.zhongweixian.entity.Message;
 
 @ChannelHandler.Sharable
 public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
@@ -37,7 +37,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebS
         }
         try {
             JSONObject jsonObject = JSONObject.parseObject(textWebSocketFrame.text());
-            logger.info("接受到客户端:{}  , 消息:{}", ctx.channel().id(), jsonObject);
+            logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
             if (jsonObject != null && "PING".equals(jsonObject.getString("cmd").toUpperCase())) {
                 return;
             }
@@ -58,10 +58,23 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebS
         ctx.fireChannelActive();
     }
 
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) {
+        logger.error("websocket client :{}, inactive : {}", ctx.channel().id(), ctx.channel().isActive());
+        listener.onClose(ctx.channel(), 500, "channelInactive");
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        //异常时断开连接
+        logger.error("websocket client:{}  exceptionCaught:{} ", ctx.channel().id(), cause);
+        listener.onClose(ctx.channel(), 505, cause.getMessage());
+    }
+
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-        logger.debug("client:{} , connect success", ctx.channel().id());
+        logger.debug("websocket client:{} , connect success", ctx.channel().id());
         listener.connect(ctx.channel());
         ctx.fireChannelRegistered();
     }
@@ -75,12 +88,12 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebS
                     if (heart <= 0) {
                         return;
                     }
-                    logger.info("{}秒没有收到客户端信息,关闭连接！", heart);
+                    logger.warn("No heartbeat message received in {} seconds", heart);
                     //向客户端发送关闭连接消息
                     Message message = new Message();
-                    message.setCmd("close");
+                    message.setType("close");
                     message.setCode("10005");
-                    message.setObj(heart + "秒没有收到客户端信息,关闭连接");
+                    message.setMessage("no heartbeat message received in " + heart + " seconds , channel closed");
                     ctx.channel().writeAndFlush(new TextWebSocketFrame(JSON.toJSONString(message)));
                     ctx.close();
                     break;
