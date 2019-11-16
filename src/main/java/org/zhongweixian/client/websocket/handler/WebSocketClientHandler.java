@@ -1,6 +1,5 @@
 package org.zhongweixian.client.websocket.handler;
 
-import org.zhongweixian.listener.ConnectionListener;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.websocketx.*;
@@ -9,6 +8,7 @@ import io.netty.util.CharsetUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zhongweixian.listener.ConnectionListener;
 
 @ChannelHandler.Sharable
 public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
@@ -64,9 +64,9 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
                 BinaryWebSocketFrame binFrame = (BinaryWebSocketFrame) frame;
                 connectionListener.onMessage(channel, binFrame.content());
             } else if (frame instanceof PongWebSocketFrame) {
-                logger.info("WebSocket Client received pong");
+                logger.debug("received pong :{}", frame);
             } else if (frame instanceof CloseWebSocketFrame) {
-                logger.info("receive close frame");
+                logger.info("received close frame");
                 this.connectionListener.onClose(ctx.channel(), ((CloseWebSocketFrame) frame).statusCode(), ((CloseWebSocketFrame) frame).reasonText());
                 channel.close();
             }
@@ -96,6 +96,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
         ctx.close();
     }
 
+
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
@@ -105,8 +106,8 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
                     break;
                 case WRITER_IDLE:
-                    //向服务端发送消息
-                    TextWebSocketFrame frame = new TextWebSocketFrame("{'cmd':'ping' , 'cts':'" + System.currentTimeMillis() + "'}");
+                    //send ping message
+                    PingWebSocketFrame frame = new PingWebSocketFrame();
                     ctx.writeAndFlush(frame);
                     logger.debug("send ping success!");
                     break;
