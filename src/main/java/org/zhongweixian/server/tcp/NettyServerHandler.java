@@ -53,7 +53,22 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("channelInactive");
+        logger.info("channelInactive channleId:{}", ctx.channel().id());
+        try {
+            connectionListener.onClose(ctx.channel(), 200, "channelInactive");
+        } catch (Exception e) {
+            logger.error("{}", e);
+        }
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) {
+        logger.info("channelActive channleId:{}", ctx.channel().id());
+        try {
+            connectionListener.connect(ctx.channel());
+        } catch (Exception e) {
+            logger.error("{}", e);
+        }
     }
 
     @Override
@@ -98,12 +113,5 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
             throws Exception {
         logger.error("客户端连接  Netty 出错...");
 
-    }
-
-    @Override
-    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-        logger.info("register success");
-        ctx.fireChannelRegistered();
-        NioSocketChannel channel = (NioSocketChannel) ctx.channel();
     }
 }
