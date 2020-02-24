@@ -1,4 +1,4 @@
-package org.zhongweixian.server;
+package org.zhongweixian.server.websocket;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;

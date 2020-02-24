@@ -53,7 +53,7 @@ public class WsClient implements Runnable {
     /**
      * 客户端自动重连
      */
-    private Boolean autoConnect = true;
+    private Boolean autoReConnect = true;
 
     /**
      * 当前重连次数
@@ -87,8 +87,6 @@ public class WsClient implements Runnable {
                         pipeline.addLast(new HttpClientCodec(), new HttpObjectAggregator(8192));
                         WebSocketClientHandler clientHandler = new WebSocketClientHandler();
                         clientHandler.setConnectionListener(payload, listener);
-
-
                         pipeline.addLast("hookedHandler", clientHandler);
                     }
                 });
@@ -100,10 +98,10 @@ public class WsClient implements Runnable {
             ChannelFuture channelFuture = bootstrap.connect(websocketURI.getHost(), port).sync();
             if (channelFuture.isSuccess()) {
                 TRY_TIMES = 1;
-                logger.info("wsClient connect to {}:{} success", websocketURI.getHost(), port);
                 channel = channelFuture.channel();
-
+                logger.info("channel:{} connected , channelFuture result:{}", channel, channelFuture.isSuccess());
                 WebSocketClientHandler clientHandler = (WebSocketClientHandler) channel.pipeline().get("hookedHandler");
+                clientHandler.setHeartCommand(heartCommand);
                 HttpHeaders httpHeaders = new DefaultHttpHeaders();
                 WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(websocketURI, WebSocketVersion.V13,
                         null, true, httpHeaders);
@@ -117,7 +115,7 @@ public class WsClient implements Runnable {
             if (channel != null && channel.isOpen()) {
                 channel.close();
             }
-            if (!autoConnect || TRY_TIMES >= MAX_TIME) {
+            if (!autoReConnect || TRY_TIMES >= MAX_TIME) {
                 return;
             }
 
@@ -175,17 +173,41 @@ public class WsClient implements Runnable {
     }
 
     public void close() {
-        autoConnect = false;
+        autoReConnect = false;
         if (channel != null) {
             channel.close();
         }
     }
 
-    public Boolean getAutoConnect() {
-        return autoConnect;
+    public Integer getHeart() {
+        return heart;
     }
 
-    public void setAutoConnect(Boolean autoConnect) {
-        this.autoConnect = autoConnect;
+    public void setHeart(Integer heart) {
+        this.heart = heart;
+    }
+
+    public String getHeartCommand() {
+        return heartCommand;
+    }
+
+    public void setHeartCommand(String heartCommand) {
+        this.heartCommand = heartCommand;
+    }
+
+    public Boolean getAutoReConnect() {
+        return autoReConnect;
+    }
+
+    public void setAutoReConnect(Boolean autoReConnect) {
+        this.autoReConnect = autoReConnect;
+    }
+
+    public Integer getMAX_TIME() {
+        return MAX_TIME;
+    }
+
+    public void setMAX_TIME(Integer MAX_TIME) {
+        this.MAX_TIME = MAX_TIME;
     }
 }

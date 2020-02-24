@@ -86,13 +86,18 @@ public class WebSocketClient {
         WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(websocketURI, WebSocketVersion.V13,
                 null, true, httpHeaders);
         Channel channel = bootstrap.connect(websocketURI.getHost(), port).sync().channel();
-        logger.info("websocket client connected , channelId:{}", channel.id());
         WebSocketClientHandler clientHandler = (WebSocketClientHandler) channel.pipeline().get("hookedHandler");
         clientHandler.setConnectionListener(payload, listener);
         clientHandler.setHandshaker(handshaker);
         handshaker.handshake(channel);
         //可以使用ChannelFuture来做断开检测
-        clientHandler.handshakeFuture().sync();
+        ChannelFuture channelFuture = clientHandler.handshakeFuture().sync();
+        channelFuture.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                logger.info("channel:{} connected , channelFuture result:{}", channel, channelFuture.isSuccess());
+            }
+        });
         return new WsConnection(channel);
     }
 

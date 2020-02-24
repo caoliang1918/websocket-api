@@ -15,9 +15,20 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     private Logger logger = LoggerFactory.getLogger(WebSocketClientHandler.class);
 
 
+    /**
+     * 消息回调接口
+     */
     private ConnectionListener connectionListener;
+
+    /**
+     * 登录验证的消息
+     */
     private String payload;
 
+    /**
+     * 心跳
+     */
+    private String heartCommand;
 
     public ConnectionListener getConnectionListener() {
         return connectionListener;
@@ -107,9 +118,15 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
                     break;
                 case WRITER_IDLE:
                     //send ping message
+                    if (heartCommand != null) {
+                        TextWebSocketFrame ping = new TextWebSocketFrame(heartCommand);
+                        ctx.writeAndFlush(ping);
+                        logger.debug("send ping:{} success", heartCommand);
+                        return;
+                    }
                     PingWebSocketFrame frame = new PingWebSocketFrame();
                     ctx.writeAndFlush(frame);
-                    logger.debug("send ping success!");
+                    logger.debug("send ping success");
                     break;
                 case ALL_IDLE:
                     break;
@@ -146,4 +163,19 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
         return this.handshakeFuture;
     }
 
+    public String getPayload() {
+        return payload;
+    }
+
+    public void setPayload(String payload) {
+        this.payload = payload;
+    }
+
+    public String getHeartCommand() {
+        return heartCommand;
+    }
+
+    public void setHeartCommand(String heartCommand) {
+        this.heartCommand = heartCommand;
+    }
 }

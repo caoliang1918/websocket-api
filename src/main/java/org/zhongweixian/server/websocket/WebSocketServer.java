@@ -1,4 +1,4 @@
-package org.zhongweixian.server;
+package org.zhongweixian.server.websocket;
 
 import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.ServerBootstrap;
