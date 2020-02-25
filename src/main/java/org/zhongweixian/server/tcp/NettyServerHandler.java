@@ -92,11 +92,11 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
             if (idleStateEvent.state() == IdleState.READER_IDLE) {
-                logger.debug("No heartbeat message received in 60 seconds");
+                logger.warn("No heartbeat message received in 60 seconds");
                 //向客户端发送心跳消息
                 JSONObject messageProtocol = new JSONObject();
                 messageProtocol.put("id", 1L);
-                messageProtocol.put("cmd", "logout");
+                messageProtocol.put("cmd", "timeout");
                 messageProtocol.put("message", "No heartbeat message received in 60 seconds");
                 messageProtocol.put("cts", new Date());
                 ByteBuf byteBuf = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(messageProtocol.toString(), CharsetUtil.UTF_8));
@@ -111,7 +111,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
             throws Exception {
-        logger.error("客户端连接  Netty 出错...");
+        logger.error("{}", cause);
 
     }
 }

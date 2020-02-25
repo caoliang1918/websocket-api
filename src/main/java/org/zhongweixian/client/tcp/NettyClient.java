@@ -1,6 +1,10 @@
 package org.zhongweixian.client.tcp;
 
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import org.zhongweixian.client.AuthorizationToken;
 import org.zhongweixian.client.tcp.handler.SimpleClientHandler;
+import org.zhongweixian.decode.MessageDecoder;
+import org.zhongweixian.decode.MessageEncoder;
 import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -36,7 +40,7 @@ public class NettyClient implements Runnable {
     /**
      * 客户端自动重连
      */
-    private Boolean autoConnect = true;
+    private Boolean autoReConnect = true;
 
     /**
      * 当前重连次数
@@ -55,6 +59,11 @@ public class NettyClient implements Runnable {
     private ConnectionListener listener;
 
     /**
+     * 登录授权
+     */
+    private AuthorizationToken authorizationToken;
+
+    /**
      * 自定义编解码
      */
     private ChannelHandler[] channelHandlers;
@@ -65,9 +74,10 @@ public class NettyClient implements Runnable {
     ChannelFuture channelFuture = null;
 
 
-    public NettyClient(final String host, final Integer port, ConnectionListener listener) {
+    public NettyClient(final String host, final Integer port, AuthorizationToken authorizationToken, ConnectionListener listener) {
         this.host = host;
         this.port = port;
+        this.authorizationToken = authorizationToken;
         this.listener = listener;
         init();
     }
@@ -91,8 +101,10 @@ public class NettyClient implements Runnable {
                     protected void initChannel(Channel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new IdleStateHandler(0, heart, 0))
-                                //.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, -4, 4))
-                                .addLast(new SimpleClientHandler(listener));
+                                .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, -4, 4))
+                                .addLast("decoder", new MessageDecoder())
+                                .addLast("encoder", new MessageEncoder())
+                                .addLast(new SimpleClientHandler(listener, authorizationToken));
                         if (ArrayUtils.isNotEmpty(channelHandlers)) {
                             //自定义的handler
                             pipeline.addLast(channelHandlers);
@@ -125,7 +137,7 @@ public class NettyClient implements Runnable {
                     channelFuture.channel().close();
                 }
             }
-            if (!autoConnect || TRY_TIMES.get() >= MAX_TIME) {
+            if (!autoReConnect || TRY_TIMES.get() >= MAX_TIME) {
                 return;
             }
             try {
@@ -133,7 +145,7 @@ public class NettyClient implements Runnable {
             } catch (InterruptedException e) {
                 logger.error("{}", e);
             }
-            if (!autoConnect) {
+            if (!autoReConnect) {
                 return;
             }
             logger.info("pre to reconnect {}:{} for {} times", host, port, TRY_TIMES.getAndIncrement());
@@ -147,7 +159,7 @@ public class NettyClient implements Runnable {
      *
      * @param message
      */
-    public void sendMessage(final Object message) {
+    public void sendMessage(final String message) {
         if (channel == null || !channel.isActive()) {
             logger.warn("channel is null or clone {}:{}", host, port);
             return;
@@ -160,7 +172,7 @@ public class NettyClient implements Runnable {
      *
      * @param message
      */
-    public void sendMessageListener(final Object message) {
+    public void sendMessageListener(final String message) {
         if (channel == null || !channel.isActive()) {
             logger.warn("channel is null or clone {}:{}", host, port);
             return;
@@ -177,16 +189,16 @@ public class NettyClient implements Runnable {
         if (channel != null && channel.isOpen()) {
             channel.close();
         }
-        autoConnect = false;
-        logger.info("client close {}:{} , autoConnect:{}", host, port, autoConnect);
+        autoReConnect = false;
+        logger.info("client close {}:{} , autoReConnect:{}", host, port, autoReConnect);
     }
 
-    public Boolean getAutoConnect() {
-        return autoConnect;
+    public Boolean getAutoReConnect() {
+        return autoReConnect;
     }
 
-    public void setAutoConnect(Boolean autoConnect) {
-        this.autoConnect = autoConnect;
+    public void setAutoReConnect(Boolean autoReConnect) {
+        this.autoReConnect = autoReConnect;
     }
 
     public void setMaxReConnect(Integer maxReConnect) {

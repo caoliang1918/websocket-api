@@ -1,5 +1,7 @@
 package org.zhongweixian.client.tcp.handler;
 
+import org.apache.commons.lang3.StringUtils;
+import org.zhongweixian.client.AuthorizationToken;
 import org.zhongweixian.listener.ConnectionListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,8 +19,11 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     private ConnectionListener listener;
 
-    public SimpleClientHandler(ConnectionListener listener) {
+    private AuthorizationToken authorizationToken;
+
+    public SimpleClientHandler(ConnectionListener listener, AuthorizationToken authorizationToken) {
         this.listener = listener;
+        this.authorizationToken = authorizationToken;
     }
 
     @Override
@@ -40,7 +45,7 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
                     break;
                 case WRITER_IDLE:
                     //向服务端发送消息
-                    ctx.writeAndFlush("{'cmd':'ping' , 'cts':'\" + System.currentTimeMillis() + \"'}");
+                    ctx.writeAndFlush(authorizationToken.getPing());
                     logger.debug("send ping success!");
                     break;
                 case ALL_IDLE:
@@ -54,6 +59,9 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         //客户端和服务端建立连接时调用
         ctx.fireChannelActive();
+        if (StringUtils.isNoneBlank()) {
+            ctx.channel().writeAndFlush(authorizationToken.getPayload());
+        }
         listener.connect(ctx.channel());
     }
 

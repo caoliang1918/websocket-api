@@ -5,9 +5,13 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zhongweixian.decode.MessageDecoder;
+import org.zhongweixian.decode.MessageEncoder;
 import org.zhongweixian.listener.ConnectionListener;
 
 import java.net.InetSocketAddress;
@@ -59,6 +63,8 @@ public class NettyServer {
                             ChannelPipeline pipeline = channel.pipeline();
                             pipeline.addLast(new IdleStateHandler(heart, 0, 0))
                                     .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, -4, 4))
+                                    .addLast("decoder", new MessageDecoder())
+                                    .addLast("encoder", new MessageEncoder())
                                     .addLast(new NettyServerHandler(connectionListener));
 
                         }
