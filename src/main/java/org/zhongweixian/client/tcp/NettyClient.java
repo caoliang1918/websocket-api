@@ -104,7 +104,7 @@ public class NettyClient implements Runnable {
                                 .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, -4, 4))
                                 .addLast("decoder", new MessageDecoder())
                                 .addLast("encoder", new MessageEncoder())
-                                .addLast(new SimpleClientHandler(listener, authorizationToken));
+                                .addLast(new SimpleClientHandler(listener, authorizationToken == null ? new AuthorizationToken() : authorizationToken));
                         if (ArrayUtils.isNotEmpty(channelHandlers)) {
                             //自定义的handler
                             pipeline.addLast(channelHandlers);

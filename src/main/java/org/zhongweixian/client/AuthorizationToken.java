@@ -5,7 +5,7 @@ package org.zhongweixian.client;
  */
 public class AuthorizationToken {
 
-    private String ping = "{\"cmd\":\"ping\",\"station_no\":" + System.currentTimeMillis() + "}";
+    private String ping = "{\"cmd\":\"ping\",\"cts\":" + System.currentTimeMillis() + "}";
 
     private String payload;
 

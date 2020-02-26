@@ -36,7 +36,7 @@ public class WebSocketServerInitializer extends ChannelInitializer<Channel> {
         }
         //心跳检测
         if (heart > 0) {
-            pipeline.addLast("ping", new IdleStateHandler(heart, 0, 0));
+            pipeline.addLast("idle", new IdleStateHandler(heart, 0, 0));
         }
         //HttpServerCodec: 针对http协议进行编解码
         pipeline.addLast(new HttpServerCodec());
