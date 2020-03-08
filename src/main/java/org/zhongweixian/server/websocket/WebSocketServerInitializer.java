@@ -1,6 +1,5 @@
 package org.zhongweixian.server.websocket;
 
-import org.zhongweixian.listener.ConnectionListener;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -10,6 +9,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.zhongweixian.listener.ConnectionListener;
 
 
 public class WebSocketServerInitializer extends ChannelInitializer<Channel> {

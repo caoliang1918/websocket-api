@@ -2,19 +2,18 @@ package org.zhongweixian.server.websocket;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import org.zhongweixian.listener.ConnectionListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.timeout.IdleStateEvent;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.entity.Message;
+import org.zhongweixian.listener.ConnectionListener;
 
 @ChannelHandler.Sharable
-public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
+public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
     private Logger logger = LoggerFactory.getLogger(WebSocketServerHandler.class);
 
     private Integer heart;
@@ -31,26 +30,37 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebS
 
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame textWebSocketFrame) throws Exception {
-        if (StringUtils.isBlank(textWebSocketFrame.text())) {
+    protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) throws Exception {
+        if (webSocketFrame instanceof TextWebSocketFrame) {
+            TextWebSocketFrame textWebSocketFrame = (TextWebSocketFrame) webSocketFrame;
+            try {
+                JSONObject jsonObject = JSONObject.parseObject(textWebSocketFrame.text());
+                logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
+                if (jsonObject != null && "PING".equals(jsonObject.getString("cmd").toUpperCase())) {
+                    return;
+                }
+                if (jsonObject != null) {
+                    listener.onMessage(ctx.channel(), textWebSocketFrame.text());
+                }
+            } catch (Exception e) {
+                logger.error("解析json:{} 异常:{}", textWebSocketFrame.text(), e);
+                JSONObject error = new JSONObject();
+                error.put("messgae", e.getMessage());
+                error.put("code", 500);
+                ctx.channel().writeAndFlush(new TextWebSocketFrame(error.toJSONString()));
+            }
+            return;
+        } else if (webSocketFrame instanceof PingWebSocketFrame) {
+            logger.debug("send ping response");
+            ctx.channel().write(new PongWebSocketFrame(webSocketFrame.content().retain()));
+            return;
+        } else if (webSocketFrame instanceof BinaryWebSocketFrame) {
+            BinaryWebSocketFrame binaryWebSocketFrame = (BinaryWebSocketFrame) webSocketFrame;
+            listener.onMessage(ctx.channel(), binaryWebSocketFrame.content());
             return;
         }
-        try {
-            JSONObject jsonObject = JSONObject.parseObject(textWebSocketFrame.text());
-            logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
-            if (jsonObject != null && "PING".equals(jsonObject.getString("cmd").toUpperCase())) {
-                return;
-            }
-            if (jsonObject != null) {
-                listener.onMessage(ctx.channel(), textWebSocketFrame.text());
-            }
-        } catch (Exception e) {
-            logger.error("解析json:{} 异常:{}", textWebSocketFrame.text(), e);
-            JSONObject error = new JSONObject();
-            error.put("messgae", e.getMessage());
-            error.put("code", 500);
-            ctx.channel().writeAndFlush(new TextWebSocketFrame(error.toJSONString()));
-        }
+
+
     }
 
     @Override
@@ -68,7 +78,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebS
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //异常时断开连接
         logger.error("websocket client:{}  exceptionCaught:{} ", ctx.channel().id(), cause);
-        listener.onClose(ctx.channel(), 505, cause.getMessage());
+        listener.onClose(ctx.channel(), 501, cause.getMessage());
     }
 
 
@@ -91,7 +101,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<TextWebS
                     logger.warn("No heartbeat message received in {} seconds", heart);
                     //向客户端发送关闭连接消息
                     Message message = new Message();
-                    message.setType("close");
+                    message.setType("timeout");
                     message.setCode("10005");
                     message.setMessage("no heartbeat message received in " + heart + " seconds , channel closed");
                     ctx.channel().writeAndFlush(new TextWebSocketFrame(JSON.toJSONString(message)));

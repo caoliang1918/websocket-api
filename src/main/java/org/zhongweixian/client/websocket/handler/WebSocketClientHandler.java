@@ -71,15 +71,19 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
             if (frame instanceof TextWebSocketFrame) {
                 TextWebSocketFrame textFrame = (TextWebSocketFrame) frame;
                 this.connectionListener.onMessage(channel, textFrame.text());
+                return;
             } else if (frame instanceof BinaryWebSocketFrame) {
-                BinaryWebSocketFrame binFrame = (BinaryWebSocketFrame) frame;
-                connectionListener.onMessage(channel, binFrame.content());
+                BinaryWebSocketFrame binaryWebSocketFrame = (BinaryWebSocketFrame) frame;
+                connectionListener.onMessage(channel, binaryWebSocketFrame.content());
+                return;
             } else if (frame instanceof PongWebSocketFrame) {
                 logger.debug("received pong :{}", frame);
+                return;
             } else if (frame instanceof CloseWebSocketFrame) {
                 logger.info("received close frame");
                 this.connectionListener.onClose(ctx.channel(), ((CloseWebSocketFrame) frame).statusCode(), ((CloseWebSocketFrame) frame).reasonText());
                 channel.close();
+                return;
             }
 
         }
@@ -103,7 +107,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //异常时断开连接
         logger.error("异常断开:{}", cause);
-        connectionListener.onClose(ctx.channel(), 505, cause.getMessage());
+        connectionListener.onClose(ctx.channel(), 501, cause.getMessage());
         ctx.close();
     }
 
@@ -124,7 +128,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
                         logger.debug("send ping:{} success", heartCommand);
                         return;
                     }
-                    PingWebSocketFrame frame = new PingWebSocketFrame();
+                    TextWebSocketFrame frame = new TextWebSocketFrame("{'cmd':'ping' , 'cts':'" + System.currentTimeMillis() + "'}");
                     ctx.writeAndFlush(frame);
                     logger.debug("send ping success");
                     break;

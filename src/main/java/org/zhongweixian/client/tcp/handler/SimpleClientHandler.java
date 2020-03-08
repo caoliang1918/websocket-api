@@ -1,14 +1,16 @@
 package org.zhongweixian.client.tcp.handler;
 
-import org.apache.commons.lang3.StringUtils;
-import org.zhongweixian.client.AuthorizationToken;
-import org.zhongweixian.listener.ConnectionListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleStateEvent;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zhongweixian.client.AuthorizationToken;
+import org.zhongweixian.listener.ConnectionListener;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by caoliang on 2019-10-11
@@ -21,6 +23,8 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     private AuthorizationToken authorizationToken;
 
+    private Boolean active = false;
+
     public SimpleClientHandler(ConnectionListener listener, AuthorizationToken authorizationToken) {
         this.listener = listener;
         this.authorizationToken = authorizationToken;
@@ -28,10 +32,11 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        logger.debug("receive msg:{}", msg);
         try {
             listener.onMessage(ctx.channel(), msg.toString());
         } catch (Exception e) {
-            logger.error("read message error:{}", msg);
+            logger.error("read message:{} error:{}", msg, e);
         }
     }
 
@@ -41,12 +46,15 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
             IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
             switch (idleStateEvent.state()) {
                 case READER_IDLE:
-
+                    //100秒没有读到服务端，则认为服务端已经停止
+                    logger.warn("response from:{} timeout", ctx.channel().remoteAddress());
+                    ctx.channel().close();
+                    active = false;
                     break;
                 case WRITER_IDLE:
                     //向服务端发送消息
                     ctx.writeAndFlush(authorizationToken.getPing());
-                    logger.debug("send ping success!");
+                    logger.debug("send ping success,channelId:{}", ctx.channel().id());
                     break;
                 case ALL_IDLE:
                     break;
@@ -57,26 +65,48 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        logger.debug("socket connect success:{}", ctx.channel());
+        active = true;
         //客户端和服务端建立连接时调用
-        ctx.fireChannelActive();
-        if (StringUtils.isNoneBlank()) {
+        if (StringUtils.isNoneBlank(authorizationToken.getPayload())) {
             ctx.channel().writeAndFlush(authorizationToken.getPayload());
         }
+        if (authorizationToken.getTimeHeart()) {
+            logger.debug("start send ping, timeHeart:{}s, channel:{}", authorizationToken.getHeart(), ctx.channel().remoteAddress());
+            ctx.channel().eventLoop().scheduleAtFixedRate(() -> {
+                try {
+                    if (!active) {
+                        ctx.channel().eventLoop().shutdownGracefully();
+                        logger.info("stop ping,channel:{}", ctx.channel());
+                        return;
+                    }
+                    ctx.channel().writeAndFlush(authorizationToken.getPing());
+                    logger.debug("send ping success,channelId:{}", ctx.channel().id());
+                } catch (Exception e) {
+                    logger.error("{}", e);
+                }
+            }, 5, authorizationToken.getHeart(), TimeUnit.SECONDS);
+        }
         listener.connect(ctx.channel());
+        super.channelActive(ctx);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //异常时断开连接
-        logger.error("异常断开:{}", cause);
-        listener.onClose(ctx.channel(), 500, cause.getMessage());
+        logger.error("exceptionCaught:{}", cause);
+        active = false;
+        listener.onClose(ctx.channel(), 501, cause.getMessage());
         ctx.close();
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.error("连接中断, channel active : {}", ctx.channel().isActive());
-        listener.onClose(ctx.channel(), 505, "connect to server close");
+        logger.error("socket close, channel active : {}", ctx.channel().isActive());
+        active = false;
+        listener.onClose(ctx.channel(), 500, "connect to server close");
         ctx.channel().close();
     }
+
+
 }

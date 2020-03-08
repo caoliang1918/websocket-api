@@ -1,6 +1,5 @@
 package org.zhongweixian.server.websocket;
 
-import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
@@ -8,6 +7,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zhongweixian.listener.ConnectionListener;
 
 import java.net.InetSocketAddress;
 
@@ -53,7 +53,7 @@ public class WebSocketServer {
         this.connectionListener = connectionListener;
     }
 
-    public WebSocketServer(int port, Integer heart, String path, Integer parentGroupSize , Integer childGroupSize , ConnectionListener connectionListener) {
+    public WebSocketServer(int port, Integer heart, String path, Integer parentGroupSize, Integer childGroupSize, ConnectionListener connectionListener) {
         this.port = port;
         this.heart = heart;
         this.path = path;

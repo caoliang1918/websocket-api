@@ -6,8 +6,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
@@ -41,7 +39,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf) throws Exception {
         logger.info("client connect :{}", byteBuf.toString(CharsetUtil.UTF_8));
-
     }
 
 
@@ -55,7 +52,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("channelInactive channleId:{}", ctx.channel().id());
         try {
-            connectionListener.onClose(ctx.channel(), 200, "channelInactive");
+            connectionListener.onClose(ctx.channel(), 500, "channelInactive");
         } catch (Exception e) {
             logger.error("{}", e);
         }
@@ -91,17 +88,22 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
-            if (idleStateEvent.state() == IdleState.READER_IDLE) {
-                logger.warn("No heartbeat message received in 60 seconds");
-                //向客户端发送心跳消息
-                JSONObject messageProtocol = new JSONObject();
-                messageProtocol.put("id", 1L);
-                messageProtocol.put("cmd", "timeout");
-                messageProtocol.put("message", "No heartbeat message received in 60 seconds");
-                messageProtocol.put("cts", new Date());
-                ByteBuf byteBuf = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(messageProtocol.toString(), CharsetUtil.UTF_8));
-                ctx.writeAndFlush(byteBuf).addListener(ChannelFutureListener.CLOSE);
-                ctx.close();
+            switch (idleStateEvent.state()) {
+                case WRITER_IDLE:
+
+                    break;
+                case READER_IDLE:
+                    logger.warn("No heartbeat message received in 60 seconds");
+                    //向客户端发送心跳消息
+                    JSONObject messageProtocol = new JSONObject();
+                    messageProtocol.put("id", 1L);
+                    messageProtocol.put("cmd", "timeout");
+                    messageProtocol.put("message", "No heartbeat message received in 60 seconds");
+                    messageProtocol.put("cts", new Date());
+                    ByteBuf byteBuf = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(messageProtocol.toString(), CharsetUtil.UTF_8));
+                    ctx.writeAndFlush(byteBuf).addListener(ChannelFutureListener.CLOSE);
+                    ctx.close();
+
             }
         }
         super.userEventTriggered(ctx, evt);
@@ -111,7 +113,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
             throws Exception {
-        logger.error("{}", cause);
+        logger.error("exceptionCaught:{}", cause);
+        connectionListener.onClose(ctx.channel(), 501, cause.getMessage());
 
     }
 }

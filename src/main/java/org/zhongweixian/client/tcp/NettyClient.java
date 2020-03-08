@@ -1,20 +1,22 @@
 package org.zhongweixian.client.tcp;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import org.apache.commons.lang3.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zhongweixian.client.AuthorizationToken;
 import org.zhongweixian.client.tcp.handler.SimpleClientHandler;
 import org.zhongweixian.decode.MessageDecoder;
 import org.zhongweixian.decode.MessageEncoder;
 import org.zhongweixian.listener.ConnectionListener;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.timeout.IdleStateHandler;
-import org.apache.commons.lang3.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -93,14 +95,19 @@ public class NettyClient implements Runnable {
 
     private void init() {
         bootstrap = new Bootstrap();
-        group = new NioEventLoopGroup();
+        if (authorizationToken.getThreadNums() == null || authorizationToken.getThreadNums() < 1) {
+            group = new NioEventLoopGroup();
+        } else {
+            group = new NioEventLoopGroup(authorizationToken.getThreadNums(), new DefaultThreadFactory(authorizationToken.getThreadName(), 1));
+        }
+
         bootstrap.group(group)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
                     protected void initChannel(Channel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new IdleStateHandler(0, heart, 0))
+                        pipeline.addLast("idle", new IdleStateHandler(authorizationToken.getPongTimeout(), authorizationToken.getTimeHeart() ? 0 : authorizationToken.getHeart(), 0))
                                 .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, -4, 4))
                                 .addLast("decoder", new MessageDecoder())
                                 .addLast("encoder", new MessageEncoder())
@@ -124,7 +131,7 @@ public class NettyClient implements Runnable {
         try {
             channelFuture = bootstrap.connect(host, port).sync();
             if (channelFuture.isSuccess()) {
-                logger.info("netty client connect {}:{} success", host, port);
+                logger.debug("netty client connect {}:{}", host, port);
                 TRY_TIMES = new AtomicInteger(1);
             }
             channel = channelFuture.channel();
@@ -141,7 +148,11 @@ public class NettyClient implements Runnable {
                 return;
             }
             try {
-                Thread.sleep(heart * 1000);
+                Integer sleep = 2;
+                if (MAX_TIME > heart) {
+                    sleep = 10;
+                }
+                TimeUnit.MINUTES.sleep(sleep);
             } catch (InterruptedException e) {
                 logger.error("{}", e);
             }
@@ -211,5 +222,12 @@ public class NettyClient implements Runnable {
 
     public String getHost() {
         return host;
+    }
+
+    public Boolean isActive() {
+        if (channel != null && channel.isActive()) {
+            return true;
+        }
+        return false;
     }
 }

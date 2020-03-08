@@ -1,6 +1,5 @@
 package org.zhongweixian.client.websocket;
 
-import org.zhongweixian.listener.ConnectionListener;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -20,6 +19,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
+import org.zhongweixian.listener.ConnectionListener;
 
 import javax.net.ssl.SSLException;
 import java.net.URI;

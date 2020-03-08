@@ -5,13 +5,43 @@ package org.zhongweixian.client;
  */
 public class AuthorizationToken {
 
-    private String ping = "{\"cmd\":\"ping\",\"cts\":" + System.currentTimeMillis() + "}";
+    private String ping;
 
     private String payload;
 
+    /**
+     * 默认心跳10秒
+     */
+    private Integer heart = 10;
+
+    /**
+     * 是否是定时心跳，默认是没有业务消息则发心跳
+     */
+    private Boolean TimeHeart = false;
+
+    /**
+     * ping消息超时
+     */
+    private Integer pingTimeout = 60;
+
+    /**
+     * 服务端返回消息超时
+     */
+    private Integer pongTimeout = 100;
+
+    /**
+     * 定义线程名称
+     */
+    private String threadName;
+
+    /**
+     * 线程数量
+     */
+    private Integer threadNums;
+
 
     public String getPing() {
-        return ping;
+        return ping == null ? "{\"cmd\":\"ping\",\"cts\":" + System.currentTimeMillis() + "}" : ping;
     }
 
     public void setPing(String ping) {
@@ -24,5 +54,53 @@ public class AuthorizationToken {
 
     public void setPayload(String payload) {
         this.payload = payload;
+    }
+
+    public Integer getHeart() {
+        return heart;
+    }
+
+    public void setHeart(Integer heart) {
+        this.heart = heart;
+    }
+
+    public Boolean getTimeHeart() {
+        return TimeHeart;
+    }
+
+    public void setTimeHeart(Boolean timeHeart) {
+        TimeHeart = timeHeart;
+    }
+
+    public Integer getPingTimeout() {
+        return pingTimeout;
+    }
+
+    public void setPingTimeout(Integer pingTimeout) {
+        this.pingTimeout = pingTimeout;
+    }
+
+    public Integer getPongTimeout() {
+        return pongTimeout;
+    }
+
+    public void setPongTimeout(Integer pongTimeout) {
+        this.pongTimeout = pongTimeout;
+    }
+
+    public String getThreadName() {
+        return threadName;
+    }
+
+    public void setThreadName(String threadName) {
+        this.threadName = threadName;
+    }
+
+    public Integer getThreadNums() {
+        return threadNums;
+    }
+
+    public void setThreadNums(Integer threadNums) {
+        this.threadNums = threadNums;
     }
 }
