@@ -23,6 +23,7 @@ import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
 import org.zhongweixian.listener.ConnectionListener;
 
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by caoliang on 2019-09-25
@@ -120,11 +121,13 @@ public class WsClient implements Runnable {
             }
 
             try {
-                Thread.sleep(heart * 1000);
+                TimeUnit.SECONDS.sleep(heart);
             } catch (InterruptedException e) {
                 logger.error("{}", e);
             }
-
+            if (!autoReConnect) {
+                return;
+            }
             logger.info("reconnect {}:{}  for {} times", websocketURI.getHost(), port, TRY_TIMES);
             TRY_TIMES++;
             connect();

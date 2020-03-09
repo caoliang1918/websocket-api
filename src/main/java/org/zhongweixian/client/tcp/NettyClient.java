@@ -149,10 +149,10 @@ public class NettyClient implements Runnable {
             }
             try {
                 Integer sleep = 2;
-                if (MAX_TIME > heart) {
+                if (TRY_TIMES.get() > heart) {
                     sleep = 10;
                 }
-                TimeUnit.MINUTES.sleep(sleep);
+                TimeUnit.SECONDS.sleep(sleep);
             } catch (InterruptedException e) {
                 logger.error("{}", e);
             }
