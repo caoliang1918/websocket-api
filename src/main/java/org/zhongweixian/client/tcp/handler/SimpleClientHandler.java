@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.zhongweixian.client.AuthorizationToken;
 import org.zhongweixian.listener.ConnectionListener;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,6 +25,8 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
     private AuthorizationToken authorizationToken;
 
     private Boolean active = false;
+
+    private ScheduledExecutorService executor;
 
     public SimpleClientHandler(ConnectionListener listener, AuthorizationToken authorizationToken) {
         this.listener = listener;
@@ -72,12 +75,21 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
             ctx.channel().writeAndFlush(authorizationToken.getPayload());
         }
         if (authorizationToken.getTimeHeart()) {
-            logger.debug("start send ping, timeHeart:{}s, channel:{}", authorizationToken.getHeart(), ctx.channel().remoteAddress());
-            ctx.channel().eventLoop().scheduleAtFixedRate(() -> {
+            logger.info("start send ping, timeHeart:{}s, channel:{}", authorizationToken.getHeart(), ctx.channel().remoteAddress());
+
+            if (executor != null) {
+                executor.shutdownNow();
+            }
+            executor = ctx.channel().eventLoop();
+
+            /**
+             * 定时发送心跳
+             */
+            executor.scheduleAtFixedRate(() -> {
                 try {
                     if (!active) {
-                        ctx.channel().eventLoop().shutdownGracefully();
                         logger.info("stop ping,channel:{}", ctx.channel());
+                        executor.shutdownNow();
                         return;
                     }
                     ctx.channel().writeAndFlush(authorizationToken.getPing());
