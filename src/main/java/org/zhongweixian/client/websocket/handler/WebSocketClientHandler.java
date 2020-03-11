@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
 
 @ChannelHandler.Sharable
-public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
+public class WebSocketClientHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
     private Logger logger = LoggerFactory.getLogger(WebSocketClientHandler.class);
 
 
@@ -41,7 +41,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Object object) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, WebSocketFrame object) throws Exception {
         logger.debug("channelId:{} , received:{}", ctx.channel().id(), object.toString());
         Channel channel = ctx.channel();
         FullHttpResponse response;
