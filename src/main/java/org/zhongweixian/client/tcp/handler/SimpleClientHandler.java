@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.zhongweixian.client.AuthorizationToken;
 import org.zhongweixian.listener.ConnectionListener;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -26,7 +27,7 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     private Boolean active = false;
 
-    private ScheduledExecutorService executor;
+    private ScheduledExecutorService executorService;
 
     public SimpleClientHandler(ConnectionListener listener, AuthorizationToken authorizationToken) {
         this.listener = listener;
@@ -51,6 +52,9 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
                 case READER_IDLE:
                     //100秒没有读到服务端，则认为服务端已经停止
                     logger.warn("response from:{} timeout", ctx.channel().remoteAddress());
+                    if (executorService != null) {
+                        executorService.shutdownNow();
+                    }
                     ctx.channel().close();
                     active = false;
                     break;
@@ -76,20 +80,14 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
         }
         if (authorizationToken.getTimeHeart()) {
             logger.info("start send ping, timeHeart:{}s, channel:{}", authorizationToken.getHeart(), ctx.channel().remoteAddress());
-
-            if (executor != null) {
-                executor.shutdownNow();
+            if (executorService != null) {
+                executorService.isShutdown();
             }
-            executor = ctx.channel().eventLoop();
-
-            /**
-             * 定时发送心跳
-             */
-            executor.scheduleAtFixedRate(() -> {
+            executorService = Executors.newScheduledThreadPool(1);
+            executorService.scheduleAtFixedRate(() -> {
                 try {
                     if (!active) {
-                        logger.info("stop ping,channel:{}", ctx.channel());
-                        executor.shutdownNow();
+                        logger.info("channel is not active:{}", ctx.channel());
                         return;
                     }
                     ctx.channel().writeAndFlush(authorizationToken.getPing());
@@ -117,6 +115,9 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
         logger.error("socket close, channel active : {}", ctx.channel().isActive());
         active = false;
         listener.onClose(ctx.channel(), 500, "connect to server close");
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdownNow();
+        }
         ctx.channel().close();
     }
 
