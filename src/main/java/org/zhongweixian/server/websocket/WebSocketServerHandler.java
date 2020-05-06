@@ -35,8 +35,14 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
             TextWebSocketFrame textWebSocketFrame = (TextWebSocketFrame) webSocketFrame;
             try {
                 JSONObject jsonObject = JSONObject.parseObject(textWebSocketFrame.text());
-                logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
-                if (jsonObject != null && "PING".equals(jsonObject.getString("cmd").toUpperCase())) {
+                if (jsonObject == null) {
+                    return;
+                }
+                if (logger.isDebugEnabled()) {
+                    logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
+                }
+                if ("ping".equals(jsonObject.getString("cmd"))) {
+                    ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"cmd\":\"pong\" , \"sequence\":" + System.currentTimeMillis() + "}"));
                     return;
                 }
                 if (jsonObject != null) {
@@ -51,8 +57,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
             }
             return;
         } else if (webSocketFrame instanceof PingWebSocketFrame) {
-            logger.debug("send ping response");
-            ctx.channel().write(new PongWebSocketFrame(webSocketFrame.content().retain()));
+            ctx.channel().writeAndFlush(new PongWebSocketFrame(webSocketFrame.content().retain()));
             return;
         } else if (webSocketFrame instanceof BinaryWebSocketFrame) {
             BinaryWebSocketFrame binaryWebSocketFrame = (BinaryWebSocketFrame) webSocketFrame;
