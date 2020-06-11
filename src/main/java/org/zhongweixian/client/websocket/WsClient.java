@@ -17,6 +17,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
@@ -108,6 +109,9 @@ public class WsClient implements Runnable {
                         null, true, httpHeaders);
                 clientHandler.setHandshaker(handshaker);
                 handshaker.handshake(channel);
+                if (StringUtils.isNoneBlank(clientHandler.getPayload())) {
+                    channel.writeAndFlush(new TextWebSocketFrame(clientHandler.getPayload()));
+                }
             }
             channelFuture.channel().closeFuture().sync();
         } catch (Exception e) {

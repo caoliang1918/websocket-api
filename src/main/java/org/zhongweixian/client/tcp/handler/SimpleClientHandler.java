@@ -25,9 +25,9 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     private AuthorizationToken authorizationToken;
 
-    private Boolean active = false;
+    private ScheduledExecutorService executorService = null;
 
-    private ScheduledExecutorService executorService;
+    private Boolean active = false;
 
     public SimpleClientHandler(ConnectionListener listener, AuthorizationToken authorizationToken) {
         this.listener = listener;
@@ -36,7 +36,9 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        logger.debug("receive msg:{}", msg);
+        if (msg == null) {
+            return;
+        }
         try {
             listener.onMessage(ctx.channel(), msg.toString());
         } catch (Exception e) {
@@ -115,11 +117,9 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
         logger.error("socket close, channel active : {}", ctx.channel().isActive());
         active = false;
         listener.onClose(ctx.channel(), 500, "connect to server close");
-        if (executorService != null && !executorService.isShutdown()) {
+        if (executorService != null) {
             executorService.shutdownNow();
         }
         ctx.channel().close();
     }
-
-
 }

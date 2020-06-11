@@ -5,13 +5,12 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.CharsetUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
 
 @ChannelHandler.Sharable
-public class WebSocketClientHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
+public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
     private Logger logger = LoggerFactory.getLogger(WebSocketClientHandler.class);
 
 
@@ -41,7 +40,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<WebSocke
 
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, WebSocketFrame object) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, Object object) throws Exception {
         logger.debug("channelId:{} , received:{}", ctx.channel().id(), object.toString());
         Channel channel = ctx.channel();
         FullHttpResponse response;
@@ -53,9 +52,6 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<WebSocke
                 //设置成功
                 this.handshakeFuture.setSuccess();
                 logger.info("WebSocket client:{} connected , response headers[sec-websocket-extensions]:{} ", ctx.channel().id(), response.headers());
-                if (StringUtils.isNoneBlank(payload)) {
-                    channel.writeAndFlush(new TextWebSocketFrame(payload));
-                }
                 connectionListener.connect(channel);
             } catch (WebSocketHandshakeException var7) {
                 FullHttpResponse res = (FullHttpResponse) object;

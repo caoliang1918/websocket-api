@@ -9,6 +9,7 @@ import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
@@ -16,6 +17,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.client.websocket.handler.WebSocketClientHandler;
@@ -25,7 +27,9 @@ import javax.net.ssl.SSLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-
+/**
+ * 支持批量websocket链接
+ */
 public class WebSocketClient {
     private Logger logger = LoggerFactory.getLogger(WebSocketClient.class);
 
@@ -40,7 +44,7 @@ public class WebSocketClient {
     public WebSocketClient(String url, Integer threads) throws URISyntaxException, SSLException {
 
         if (threads == null || threads < 0) {
-            threads = 1;
+            threads = 0;
         }
         group = new NioEventLoopGroup(threads);
         bootstrap = new Bootstrap();
@@ -96,6 +100,9 @@ public class WebSocketClient {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
                 logger.info("channel:{} connected , channelFuture result:{}", channel, channelFuture.isSuccess());
+                if (StringUtils.isNoneBlank(payload)) {
+                    channel.writeAndFlush(new TextWebSocketFrame(payload));
+                }
             }
         });
         return new WsConnection(channel);
