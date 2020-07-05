@@ -9,7 +9,7 @@
     <packaging>jar</packaging>
 
     <name>websocket-client</name>
-    <description>Demo project for ws client</description>
+    <description>Demo project for netty-api</description>
     <url>https://github.com/caoliang1918/websocket-api</url>
 
 
