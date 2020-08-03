@@ -83,7 +83,7 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
         if (authorizationToken.getTimeHeart()) {
             logger.info("start send ping, timeHeart:{}s, channel:{}", authorizationToken.getHeart(), ctx.channel().remoteAddress());
             if (executorService != null) {
-                executorService.isShutdown();
+                executorService.shutdownNow();
             }
             executorService = Executors.newScheduledThreadPool(1);
             executorService.scheduleAtFixedRate(() -> {
@@ -106,7 +106,11 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //异常时断开连接
-        logger.error("exceptionCaught:{}", cause);
+        logger.error("exceptionCaught", cause);
+        if (executorService != null) {
+            logger.info("shutdown thread:{}", ctx.channel());
+            executorService.shutdownNow();
+        }
         active = false;
         listener.onClose(ctx.channel(), 501, cause.getMessage());
         ctx.close();
@@ -114,12 +118,12 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.error("socket close, channel active : {}", ctx.channel().isActive());
+        logger.error("socket close, channel active:{}", ctx.channel().isActive());
         active = false;
-        listener.onClose(ctx.channel(), 500, "connect to server close");
         if (executorService != null) {
             executorService.shutdownNow();
         }
+        listener.onClose(ctx.channel(), 500, "connect to server close");
         ctx.channel().close();
     }
 }

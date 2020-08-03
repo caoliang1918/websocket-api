@@ -137,7 +137,7 @@ public class NettyClient implements Runnable {
             channel = channelFuture.channel();
             channelFuture.channel().closeFuture().sync();
         } catch (InterruptedException e) {
-            logger.error("{}", e);
+            logger.error(e.getMessage(), e);
         } finally {
             if (channelFuture != null) {
                 if (channelFuture.channel() != null && channelFuture.channel().isOpen()) {
@@ -154,7 +154,7 @@ public class NettyClient implements Runnable {
                 }
                 TimeUnit.SECONDS.sleep(sleep);
             } catch (InterruptedException e) {
-                logger.error("{}", e);
+                logger.error(e.getMessage(), e);
             }
             if (!autoReConnect) {
                 return;
@@ -199,6 +199,7 @@ public class NettyClient implements Runnable {
     public void close() {
         if (channel != null && channel.isOpen()) {
             channel.close();
+            group.shutdownGracefully();
         }
         autoReConnect = false;
         logger.info("client close {}:{} , autoReConnect:{}", host, port, autoReConnect);

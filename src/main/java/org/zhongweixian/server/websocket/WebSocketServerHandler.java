@@ -42,14 +42,14 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                     logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
                 }
                 if ("ping".equals(jsonObject.getString("cmd"))) {
-                    ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"type\":\"pong\",\"sequence\":" + System.currentTimeMillis() + "}"));
+                    ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"type\":\"pong\",\"status\":0,\"sequence\":" + System.currentTimeMillis() + "}"));
                     return;
                 }
                 if (jsonObject != null) {
                     listener.onMessage(ctx.channel(), textWebSocketFrame.text());
                 }
             } catch (Exception e) {
-                logger.error("解析json:{} 异常:{}", textWebSocketFrame.text(), e);
+                logger.error("解析json:{} 异常", textWebSocketFrame.text(), e);
                 JSONObject error = new JSONObject();
                 error.put("messgae", e.getMessage());
                 error.put("code", 500);

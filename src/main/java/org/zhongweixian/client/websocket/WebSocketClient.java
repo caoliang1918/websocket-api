@@ -38,6 +38,7 @@ public class WebSocketClient {
     private SslContext sslContext;
     private EventLoopGroup group = null;
     private Bootstrap bootstrap = null;
+    private Channel channel;
 
     private static final int HEART_TIME = 10;
 
@@ -105,12 +106,14 @@ public class WebSocketClient {
                 }
             }
         });
+        this.channel = channel;
         return new WsConnection(channel);
     }
 
 
     public void close() {
-        if (group != null) {
+        if (channel != null && channel.isOpen()) {
+            channel.close();
             group.shutdownGracefully();
         }
     }

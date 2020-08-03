@@ -74,10 +74,10 @@ public class WebSocketServer {
                     childHandler(new WebSocketServerInitializer(connectionListener, heart, path, null));
             ChannelFuture channelFuture = bootstrap.bind().sync();
             if (channelFuture.isSuccess()) {
-                logger.info("websocket started on port :{} (websocket)", port);
+                logger.info("websocket started on port:{}, path:{}", port, path);
             }
         } catch (Exception e) {
-            logger.error("{}", e);
+            logger.error(e.getMessage(), e);
         }
     }
 

@@ -115,7 +115,7 @@ public class WsClient implements Runnable {
             }
             channelFuture.channel().closeFuture().sync();
         } catch (Exception e) {
-            logger.error("{}", e);
+            logger.error(e.getMessage(), e);
         } finally {
             if (channel != null && channel.isOpen()) {
                 channel.close();
@@ -127,7 +127,7 @@ public class WsClient implements Runnable {
             try {
                 TimeUnit.SECONDS.sleep(heart);
             } catch (InterruptedException e) {
-                logger.error("{}", e);
+                logger.error(e.getMessage(), e);
             }
             if (!autoReConnect) {
                 return;
@@ -181,8 +181,9 @@ public class WsClient implements Runnable {
 
     public void close() {
         autoReConnect = false;
-        if (channel != null) {
+        if (channel != null && channel.isOpen()) {
             channel.close();
+            group.shutdownGracefully();
         }
     }
 
