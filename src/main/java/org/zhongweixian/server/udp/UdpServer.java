@@ -1,7 +1,6 @@
 package org.zhongweixian.server.udp;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
@@ -24,10 +23,8 @@ public class UdpServer {
 
     private EventLoopGroup workGroup = null;
 
-
     private Integer port;
 
-    private Integer heart = 60;
 
     private ConnectionListener connectionListener;
 
@@ -73,13 +70,46 @@ public class UdpServer {
             InetSocketAddress socketAddress = new InetSocketAddress(port);
             bootstrap.bind(socketAddress);
         } catch (Exception e) {
-            logger.error("{}", e);
+            logger.error(e.getMessage(), e);
         }
 
     }
 
     public void close() {
-        workGroup.shutdownGracefully();
+        if (workGroup != null) {
+            workGroup.shutdownGracefully();
+        }
     }
 
+    /* 16384 entries per table (16 bit) */
+    static byte[] linear_to_ulaw = new byte[65536];
+
+    /* 16384 entries per table (8 bit) */
+    static short[] ulaw_to_linear = new short[256];
+
+    /**
+     * G.711-Ulaw 转 pcm
+     *
+     * @param srcLength
+     * @param srcByte
+     * @param dstByte
+     */
+    public static void g711Ulaw2pcm(int srcLength, byte[] srcByte, byte[] dstByte) {
+        for (int i = 0, k = 0; i < srcLength; i++) {
+            short s = ulaw_to_linear[srcByte[i] & 0xff];
+            dstByte[k++] = (byte) (s & 0xff);
+            dstByte[k++] = (byte) ((s >> 8) & 0xff);
+        }
+    }
+
+    /**
+     * G.711-Alaw 转 pcm
+     *
+     * @param srcLength
+     * @param srcByte
+     * @param dstByte
+     */
+    public static void g711Alaw2pcm(int srcLength, byte[] srcByte, byte[] dstByte) {
+
+    }
 }
