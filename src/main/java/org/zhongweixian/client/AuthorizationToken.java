@@ -17,12 +17,7 @@ public class AuthorizationToken {
     /**
      * 是否是定时心跳，默认是没有业务消息则发心跳
      */
-    private Boolean TimeHeart = false;
-
-    /**
-     * ping消息超时
-     */
-    private Integer pingTimeout = 60;
+    private Boolean timeHeart = false;
 
     /**
      * 服务端返回消息超时
@@ -65,19 +60,11 @@ public class AuthorizationToken {
     }
 
     public Boolean getTimeHeart() {
-        return TimeHeart;
+        return timeHeart;
     }
 
     public void setTimeHeart(Boolean timeHeart) {
-        TimeHeart = timeHeart;
-    }
-
-    public Integer getPingTimeout() {
-        return pingTimeout;
-    }
-
-    public void setPingTimeout(Integer pingTimeout) {
-        this.pingTimeout = pingTimeout;
+        this.timeHeart = timeHeart;
     }
 
     public Integer getPongTimeout() {
