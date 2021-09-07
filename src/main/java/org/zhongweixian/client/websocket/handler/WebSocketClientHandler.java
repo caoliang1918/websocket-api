@@ -78,7 +78,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
             } else if (frame instanceof CloseWebSocketFrame) {
                 logger.info("received close frame");
                 this.connectionListener.onClose(ctx.channel(), ((CloseWebSocketFrame) frame).statusCode(), ((CloseWebSocketFrame) frame).reasonText());
-                channel.close();
+               // channel.close();
                 return;
             }
 

@@ -5,7 +5,7 @@
 
 
 ## Getting it
-`websocket-api` requires Java 8 or + to run.
+`websocket-api` requires Java 11 or + to run.
 
 With `Maven Central` repositories (stable releases only):
 
@@ -13,7 +13,7 @@ With `Maven Central` repositories (stable releases only):
     <dependency>
         <groupId>org.zhongweixian</groupId>
         <artifactId>websocket-api</artifactId>
-        <version>2.0.4</version>
+        <version>2.0.5</version>
     </dependency>
 ```
 
