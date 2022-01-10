@@ -5,7 +5,7 @@
 
     <groupId>org.zhongweixian</groupId>
     <artifactId>websocket-api</artifactId>
-    <version>2.0.4</version>
+    <version>2.1.0</version>
     <packaging>jar</packaging>
 
     <name>websocket-client</name>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.67.Final</version>
+            <version>4.1.72.Final</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.76</version>
+            <version>1.2.79</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

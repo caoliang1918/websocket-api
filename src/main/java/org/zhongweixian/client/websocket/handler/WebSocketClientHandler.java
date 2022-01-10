@@ -1,6 +1,7 @@
 package org.zhongweixian.client.websocket.handler;
 
 import io.netty.channel.*;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -8,6 +9,9 @@ import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @ChannelHandler.Sharable
 public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
@@ -78,8 +82,17 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
             } else if (frame instanceof CloseWebSocketFrame) {
                 logger.info("received close frame");
                 this.connectionListener.onClose(ctx.channel(), ((CloseWebSocketFrame) frame).statusCode(), ((CloseWebSocketFrame) frame).reasonText());
-               // channel.close();
+                // channel.close();
                 return;
+            } else if (object instanceof FullHttpRequest) {
+                FullHttpRequest request = (FullHttpRequest) object;
+                String uri = request.uri();
+                Map<String, Object> params = getUrlParams(uri);
+                if (uri.contains("?")) {
+                    String newUri = uri.substring(0, uri.indexOf("?"));
+                    request.setUri(newUri);
+                }
+                connectionListener.connect(channel , params);
             }
 
         }
@@ -177,5 +190,25 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
     public void setHeartCommand(String heartCommand) {
         this.heartCommand = heartCommand;
+    }
+
+    private static Map<String, Object> getUrlParams(String url) {
+        Map<String, Object> params = new HashMap<>();
+        url = url.replace("?", ";");
+        if (!url.contains(";")) {
+            return params;
+        }
+        if (url.split(";").length > 0) {
+            String[] arr = url.split(";")[1].split("&");
+            for (String s : arr) {
+                String key = s.split("=")[0];
+                String value = s.split("=")[1];
+                params.put(key, value);
+            }
+            return params;
+
+        } else {
+            return params;
+        }
     }
 }

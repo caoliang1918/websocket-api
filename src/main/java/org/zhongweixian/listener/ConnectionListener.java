@@ -3,6 +3,8 @@ package org.zhongweixian.listener;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 
+import java.util.Map;
+
 
 public interface ConnectionListener {
 
@@ -51,4 +53,13 @@ public interface ConnectionListener {
      * @param channel
      */
     void connect(Channel channel) throws Exception;
+
+    /**
+     * 带参数建立连接
+     *
+     * @param channel
+     * @param params
+     * @throws Exception
+     */
+    void connect(Channel channel, Map<String, Object> params) throws Exception;
 }

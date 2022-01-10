@@ -60,7 +60,7 @@ public class WsClient implements Runnable {
     /**
      * 当前重连次数
      */
-    private Integer TRY_TIMES = new Integer(0);
+    private Integer TRY_TIMES = 0;
 
     /**
      * 最大重连次数
