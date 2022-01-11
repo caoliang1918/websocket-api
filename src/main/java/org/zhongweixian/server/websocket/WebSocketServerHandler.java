@@ -5,16 +5,23 @@ import com.alibaba.fastjson.JSONObject;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.websocketx.*;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.timeout.IdleStateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.entity.Message;
 import org.zhongweixian.listener.ConnectionListener;
 
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+
 @ChannelHandler.Sharable
 public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
     private Logger logger = LoggerFactory.getLogger(WebSocketServerHandler.class);
+
 
     private Integer heart;
 
@@ -30,11 +37,21 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
 
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame webSocketFrame) throws Exception {
-        if (webSocketFrame instanceof TextWebSocketFrame) {
-            TextWebSocketFrame textWebSocketFrame = (TextWebSocketFrame) webSocketFrame;
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (null != msg && msg instanceof FullHttpRequest) {
+            FullHttpRequest request = (FullHttpRequest) msg;
+            String uri = request.uri();
+            Map params = getUrlParams(uri);
+            //如果url包含参数，需要处理
+            if (uri.contains("?")) {
+                String newUri = uri.substring(0, uri.indexOf("?"));
+                request.setUri(newUri);
+            }
+            listener.connect(ctx.channel(), params);
+        } else if (msg instanceof TextWebSocketFrame) {
+            TextWebSocketFrame frame = (TextWebSocketFrame) msg;
             try {
-                JSONObject jsonObject = JSONObject.parseObject(textWebSocketFrame.text());
+                JSONObject jsonObject = JSONObject.parseObject(frame.text());
                 if (jsonObject == null) {
                     return;
                 }
@@ -42,31 +59,28 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                     logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
                 }
                 if ("ping".equals(jsonObject.getString("cmd"))) {
-                    ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"type\":\"pong\",\"status\":0,\"sequence\":" + System.currentTimeMillis() + "}"));
+                    ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"type\":\"pong\",\"status\":0,\"sequence\":" + Instant.now().toEpochMilli() + "}"));
                     return;
                 }
                 if (jsonObject != null) {
-                    listener.onMessage(ctx.channel(), textWebSocketFrame.text());
+                    listener.onMessage(ctx.channel(), frame.text());
                 }
             } catch (Exception e) {
-                logger.error("解析json:{} 异常", textWebSocketFrame.text(), e);
+                logger.error("解析json:{} 异常", frame.text(), e);
                 JSONObject error = new JSONObject();
                 error.put("messgae", e.getMessage());
                 error.put("code", 500);
                 ctx.channel().writeAndFlush(new TextWebSocketFrame(error.toJSONString()));
             }
-            return;
-        } else if (webSocketFrame instanceof PingWebSocketFrame) {
-            ctx.channel().writeAndFlush(new PongWebSocketFrame(webSocketFrame.content().retain()));
-            return;
-        } else if (webSocketFrame instanceof BinaryWebSocketFrame) {
-            BinaryWebSocketFrame binaryWebSocketFrame = (BinaryWebSocketFrame) webSocketFrame;
-            listener.onMessage(ctx.channel(), binaryWebSocketFrame.content());
-            return;
         }
+        super.channelRead(ctx, msg);
+    }
 
+    @Override
+    protected void channelRead0(ChannelHandlerContext channelHandlerContext, WebSocketFrame webSocketFrame) throws Exception {
 
     }
+
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -120,5 +134,25 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
             }
         }
         super.userEventTriggered(ctx, evt);
+    }
+
+    private static Map getUrlParams(String url) {
+        Map<String, String> map = new HashMap<>();
+        url = url.replace("?", ";");
+        if (!url.contains(";")) {
+            return map;
+        }
+        if (url.split(";").length > 0) {
+            String[] arr = url.split(";")[1].split("&");
+            for (String s : arr) {
+                String key = s.split("=")[0];
+                String value = s.split("=")[1];
+                map.put(key, value);
+            }
+            return map;
+
+        } else {
+            return map;
+        }
     }
 }
