@@ -48,6 +48,8 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                 request.setUri(newUri);
             }
             listener.connect(ctx.channel(), params);
+            super.channelRead(ctx, msg);
+            return;
         } else if (msg instanceof TextWebSocketFrame) {
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
             try {
@@ -77,7 +79,6 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, WebSocketFrame webSocketFrame) throws Exception {
-
     }
 
 
