@@ -73,6 +73,8 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                 error.put("messgae", e.getMessage());
                 error.put("code", 500);
                 ctx.channel().writeAndFlush(new TextWebSocketFrame(error.toJSONString()));
+            }finally {
+                super.channelRead(ctx, msg);
             }
         }
     }
