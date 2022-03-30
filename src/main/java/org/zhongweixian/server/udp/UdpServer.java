@@ -39,33 +39,30 @@ public class UdpServer {
 
         Bootstrap bootstrap = new Bootstrap();
         try {
-            bootstrap.group(workGroup)
-                    .channel(NioDatagramChannel.class)
-                    .option(ChannelOption.SO_BROADCAST, true)
-                    .handler(new SimpleChannelInboundHandler<DatagramPacket>() {
-                        @Override
-                        protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket datagramPacket) throws Exception {
-                            //具体怎么拆包？
-                            ByteBuf byteBuf = datagramPacket.content();
-                            //byteBuf.skipBytes(length);
-                            connectionListener.onMessage(ctx.channel(), byteBuf);
-                        }
+            bootstrap.group(workGroup).channel(NioDatagramChannel.class).option(ChannelOption.SO_BROADCAST, true).handler(new SimpleChannelInboundHandler<DatagramPacket>() {
+                @Override
+                protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket datagramPacket) throws Exception {
+                    //具体怎么拆包？
+                    ByteBuf byteBuf = datagramPacket.content();
+                    //byteBuf.skipBytes(length);
+                    connectionListener.onMessage(ctx.channel(), byteBuf);
+                }
 
 
-                        @Override
-                        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-                            logger.info("channelInactive channel:{}", ctx.channel().id());
-                            connectionListener.onClose(ctx.channel(), 500, "socket close");
-                            ctx.fireChannelInactive();
-                        }
+                @Override
+                public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                    logger.info("channelInactive channel:{}", ctx.channel().id());
+                    connectionListener.onClose(ctx.channel(), 500, "socket close");
+                    ctx.fireChannelInactive();
+                }
 
-                        @Override
-                        public void channelActive(ChannelHandlerContext ctx) throws Exception {
-                            logger.info("channelActive channel:{}", ctx.channel().id());
-                            connectionListener.connect(ctx.channel());
-                            ctx.fireChannelActive();
-                        }
-                    });
+                @Override
+                public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                    logger.info("channelActive channel:{}", ctx.channel().id());
+                    connectionListener.connect(ctx.channel());
+                    ctx.fireChannelActive();
+                }
+            });
 
             InetSocketAddress socketAddress = new InetSocketAddress(port);
             bootstrap.bind(socketAddress);
@@ -81,12 +78,6 @@ public class UdpServer {
         }
     }
 
-    /* 16384 entries per table (16 bit) */
-    static byte[] linear_to_ulaw = new byte[65536];
-
-    /* 16384 entries per table (8 bit) */
-    static short[] ulaw_to_linear = new short[256];
-
     /**
      * G.711-Ulaw 转 pcm
      *
@@ -95,11 +86,7 @@ public class UdpServer {
      * @param dstByte
      */
     public static void g711Ulaw2pcm(int srcLength, byte[] srcByte, byte[] dstByte) {
-        for (int i = 0, k = 0; i < srcLength; i++) {
-            short s = ulaw_to_linear[srcByte[i] & 0xff];
-            dstByte[k++] = (byte) (s & 0xff);
-            dstByte[k++] = (byte) ((s >> 8) & 0xff);
-        }
+
     }
 
     /**
