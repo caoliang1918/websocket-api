@@ -47,9 +47,8 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                 String newUri = uri.substring(0, uri.indexOf("?"));
                 request.setUri(newUri);
             }
-            listener.connect(ctx.channel(), params);
             super.channelRead(ctx, msg);
-            return;
+            listener.connect(ctx.channel(), params);
         } else if (msg instanceof TextWebSocketFrame) {
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
             try {
