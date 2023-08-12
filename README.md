@@ -13,7 +13,7 @@ With `Maven Central` repositories (stable releases only):
     <dependency>
         <groupId>org.zhongweixian</groupId>
         <artifactId>websocket-api</artifactId>
-        <version>2.1.4</version>
+        <version>2.1.5</version>
     </dependency>
 ```
 
