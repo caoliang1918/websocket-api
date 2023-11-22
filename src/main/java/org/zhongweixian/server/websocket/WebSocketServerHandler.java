@@ -72,7 +72,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                 error.put("messgae", e.getMessage());
                 error.put("code", 500);
                 ctx.channel().writeAndFlush(new TextWebSocketFrame(error.toJSONString()));
-            }finally {
+            } finally {
                 super.channelRead(ctx, msg);
             }
         }
@@ -118,7 +118,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                     if (heart <= 0) {
                         return;
                     }
-                    logger.warn("No heartbeat message received in {} seconds", heart);
+                    logger.warn("channelId:{} no heartbeat message received in {} seconds", ctx.channel().id(), heart);
                     //向客户端发送关闭连接消息
                     Message message = new Message();
                     message.setType("timeout");
