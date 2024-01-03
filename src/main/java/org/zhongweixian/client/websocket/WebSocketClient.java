@@ -89,7 +89,7 @@ public class WebSocketClient {
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeout);
         HttpHeaders httpHeaders = new DefaultHttpHeaders();
         WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(websocketURI, WebSocketVersion.V13,
-                null, true, httpHeaders);
+                null, true, httpHeaders, 196608);
         Channel channel = bootstrap.connect(websocketURI.getHost(), port).sync().channel();
         WebSocketClientHandler clientHandler = (WebSocketClientHandler) channel.pipeline().get("hookedHandler");
         clientHandler.setConnectionListener(payload, listener);

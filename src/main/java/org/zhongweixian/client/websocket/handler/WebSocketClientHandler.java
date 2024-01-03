@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +46,6 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object object) throws Exception {
-        logger.debug("channelId:{} , received:{}", ctx.channel().id(), object.toString());
         Channel channel = ctx.channel();
         FullHttpResponse response;
         if (!this.handshaker.isHandshakeComplete()) {
@@ -70,6 +70,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
             WebSocketFrame frame = (WebSocketFrame) object;
             if (frame instanceof TextWebSocketFrame) {
                 TextWebSocketFrame textFrame = (TextWebSocketFrame) frame;
+                logger.debug("channelId:{} , received:{}", ctx.channel().id(), textFrame.text());
                 this.connectionListener.onMessage(channel, textFrame.text());
                 return;
             } else if (frame instanceof BinaryWebSocketFrame) {
@@ -92,11 +93,9 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
                     String newUri = uri.substring(0, uri.indexOf("?"));
                     request.setUri(newUri);
                 }
-                connectionListener.connect(channel , params);
+                connectionListener.connect(channel, params);
             }
-
         }
-
     }
 
     @Override
@@ -124,25 +123,11 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
-            IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
-            switch (idleStateEvent.state()) {
-                case READER_IDLE:
-
-                    break;
-                case WRITER_IDLE:
-                    //send ping message
-                    if (heartCommand != null) {
-                        TextWebSocketFrame ping = new TextWebSocketFrame(heartCommand);
-                        ctx.writeAndFlush(ping);
-                        logger.debug("send ping:{} success", heartCommand);
-                        return;
-                    }
-                    TextWebSocketFrame frame = new TextWebSocketFrame("{'cmd':'ping' , 'cts':'" + System.currentTimeMillis() + "'}");
-                    ctx.writeAndFlush(frame);
-                    logger.debug("send ping success");
-                    break;
-                case ALL_IDLE:
-                    break;
+            PingWebSocketFrame frame = new PingWebSocketFrame();
+            Channel channel = ctx.channel();
+            if (channel != null && channel.isActive()) {
+                channel.writeAndFlush(frame);
+                logger.debug("channelId:{} send ping frame", channel.id());
             }
         }
     }
