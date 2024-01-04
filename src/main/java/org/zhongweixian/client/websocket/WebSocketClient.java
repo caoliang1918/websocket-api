@@ -26,6 +26,7 @@ import org.zhongweixian.listener.ConnectionListener;
 import javax.net.ssl.SSLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 支持批量websocket链接
@@ -67,7 +68,7 @@ public class WebSocketClient {
                         if (sslContext != null) {
                             pipeline.addLast("ssl", sslContext.newHandler(ch.alloc(), websocketURI.getHost(), port));
                         }
-                        pipeline.addLast("idle", new IdleStateHandler(0, HEART_TIME, 0));
+                        pipeline.addLast("idle", new IdleStateHandler(0, HEART_TIME, 0, TimeUnit.SECONDS));
                         pipeline.addLast(new HttpClientCodec(), new HttpObjectAggregator(8192));
                         pipeline.addLast("hookedHandler", new WebSocketClientHandler());
                     }

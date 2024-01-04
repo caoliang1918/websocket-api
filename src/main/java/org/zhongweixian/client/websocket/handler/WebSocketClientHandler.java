@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -123,11 +122,25 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
-            PingWebSocketFrame frame = new PingWebSocketFrame();
-            Channel channel = ctx.channel();
-            if (channel != null && channel.isActive()) {
-                channel.writeAndFlush(frame);
-                logger.debug("channelId:{} send ping frame", channel.id());
+            IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
+            switch (idleStateEvent.state()) {
+                case READER_IDLE:
+
+                    break;
+                case WRITER_IDLE:
+                    //send ping message
+                    if (heartCommand != null) {
+                        TextWebSocketFrame ping = new TextWebSocketFrame(heartCommand);
+                        ctx.channel().writeAndFlush(ping);
+                        logger.debug("channelId:{} send ping:{} success", ctx.channel().id(), heartCommand);
+                        return;
+                    }
+                    PingWebSocketFrame frame = new PingWebSocketFrame();
+                    ctx.channel().writeAndFlush(frame);
+                    logger.debug("channelId:{} send ping success", ctx.channel().id());
+                    break;
+                case ALL_IDLE:
+                    break;
             }
         }
     }

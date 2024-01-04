@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 /**
  * websocket服务启动类
@@ -84,7 +85,7 @@ public class WebSocketServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast("idle", new IdleStateHandler(heart, 0, 0));
+                            ch.pipeline().addLast("idle", new IdleStateHandler(heart, 0, 0 , TimeUnit.SECONDS));
                             ch.pipeline().addLast(new HttpServerCodec());
                             ch.pipeline().addLast(new ChunkedWriteHandler());
                             ch.pipeline().addLast(new HttpObjectAggregator(8192));
