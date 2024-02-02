@@ -60,7 +60,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                     logger.debug("received client:{}, message:{}", ctx.channel().id(), jsonObject);
                 }
                 if ("ping".equals(jsonObject.getString("cmd"))) {
-                    ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"type\":\"pong\",\"status\":0,\"sequence\":" + Instant.now().toEpochMilli() + "}"));
+                    ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"type\":\"pong\",\"code\":0,\"sequence\":" + Instant.now().toEpochMilli() + "}"));
                     return;
                 }
                 if (jsonObject != null) {

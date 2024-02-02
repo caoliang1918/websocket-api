@@ -97,7 +97,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     //向客户端发送心跳消息
                     JSONObject messageProtocol = new JSONObject();
                     messageProtocol.put("id", 1L);
-                    messageProtocol.put("cmd", "timeout");
+                    messageProtocol.put("type", "timeout");
                     messageProtocol.put("message", "No heartbeat message received in 60 seconds");
                     messageProtocol.put("cts", new Date());
                     ByteBuf byteBuf = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(messageProtocol.toString(), CharsetUtil.UTF_8));
