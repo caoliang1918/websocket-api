@@ -90,14 +90,12 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.error("websocket client :{}, inactive : {}", ctx.channel().id(), ctx.channel().isActive());
         listener.onClose(ctx.channel(), 500, "channelInactive");
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //异常时断开连接
-        logger.error("websocket client:{}  exceptionCaught:{} ", ctx.channel().id(), cause);
         listener.onClose(ctx.channel(), 501, cause.getMessage());
     }
 
