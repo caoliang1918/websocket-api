@@ -6,9 +6,11 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.timeout.IdleStateEvent;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.entity.Message;
@@ -38,14 +40,34 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (null != msg && msg instanceof FullHttpRequest) {
+        if (msg instanceof FullHttpRequest) {
             FullHttpRequest request = (FullHttpRequest) msg;
+            HttpHeaders headers = request.headers();
             String uri = request.uri();
-            Map params = getUrlParams(uri);
+            Map<String, Object> params = getUrlParams(uri);
             //如果url包含参数，需要处理
             if (uri.contains("?")) {
                 String newUri = uri.substring(0, uri.indexOf("?"));
                 request.setUri(newUri);
+            }
+            String ip = null;
+
+            // 1. 优先获取 X-Real-IP (Nginx 通常配置这个)
+            ip = headers.get("X-Real-IP");
+            // 2. 如果没有，尝试获取 X-Forwarded-For (可能包含多个IP，取第一个)
+            if (StringUtils.isBlank(ip)) {
+                String xForwardedFor = headers.get("X-Forwarded-For");
+                if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                    // X-Forwarded-For: client, proxy1, proxy2
+                    ip = xForwardedFor.split(",")[0].trim();
+                }
+            }
+            // 3. 兜底：如果都没有，使用直连地址 (通常是 Nginx 的内网 IP)
+            if (ip == null) {
+                ip = ctx.channel().remoteAddress().toString().replaceFirst("/", "").split(":")[0];
+            }
+            if (ip != null) {
+                params.put("ip", ip);
             }
             super.channelRead(ctx, msg);
             listener.connect(ctx.channel(), params);
@@ -135,8 +157,8 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
         super.userEventTriggered(ctx, evt);
     }
 
-    private static Map getUrlParams(String url) {
-        Map<String, String> map = new HashMap<>();
+    private static Map<String, Object> getUrlParams(String url) {
+        Map<String, Object> map = new HashMap<>();
         url = url.replace("?", ";");
         if (!url.contains(";")) {
             return map;
@@ -149,7 +171,6 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                 map.put(key, value);
             }
             return map;
-
         } else {
             return map;
         }
