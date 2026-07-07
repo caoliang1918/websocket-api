@@ -3,9 +3,11 @@ package org.zhongweixian.server.tcp;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.decode.MessageDecoder;
@@ -20,11 +22,10 @@ import java.net.InetSocketAddress;
 public class NettyServer {
     private Logger logger = LoggerFactory.getLogger(NettyServer.class);
     private EventLoopGroup bossGroup = null;
-    private EventLoopGroup workGroup = null;
+    private EventLoopGroup workerGroup = null;
 
-    private Integer parentGroupSize = 2;
-
-    private Integer childGroupSize = 4;
+    private Integer bossGroupSize = 1;
+    private Integer workerGroupSize = 4;
 
 
     private Integer port;
@@ -39,20 +40,21 @@ public class NettyServer {
         this.connectionListener = connectionListener;
     }
 
-    public NettyServer(int port, Integer heart, Integer parentGroupSize, Integer childGroupSize, ConnectionListener connectionListener) {
+    public NettyServer(int port, Integer heart, Integer bossGroupSize, Integer workerGroupSize, ConnectionListener connectionListener) {
         this.port = port;
         this.heart = heart;
-        this.parentGroupSize = parentGroupSize;
-        this.childGroupSize = childGroupSize;
+        this.bossGroupSize = bossGroupSize;
+        this.workerGroupSize = workerGroupSize;
         this.connectionListener = connectionListener;
     }
 
     public void start() {
-        bossGroup = new NioEventLoopGroup(parentGroupSize);
-        workGroup = new NioEventLoopGroup(childGroupSize);
+        bossGroup = new MultiThreadIoEventLoopGroup(bossGroupSize, new DefaultThreadFactory("tcp-boss-group", true), NioIoHandler.newFactory());
+        workerGroup = new MultiThreadIoEventLoopGroup(workerGroupSize, new DefaultThreadFactory("tcp-worker-group", true), NioIoHandler.newFactory());
+
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         try {
-            serverBootstrap.group(bossGroup, workGroup).channel(NioServerSocketChannel.class)
+            serverBootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
                     .localAddress(new InetSocketAddress(port))
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childHandler(new ChannelInitializer<Channel>() {
@@ -73,7 +75,7 @@ public class NettyServer {
                 logger.info("netty server start , port :{}", port);
             }
         } catch (Exception e) {
-            logger.error("{}", e);
+            logger.error(e.getMessage(), e);
         }
     }
 
@@ -81,8 +83,8 @@ public class NettyServer {
         if (bossGroup != null) {
             bossGroup.shutdownGracefully();
         }
-        if (workGroup != null) {
-            workGroup.shutdownGracefully();
+        if (workerGroup != null) {
+            workerGroup.shutdownGracefully();
         }
     }
 }

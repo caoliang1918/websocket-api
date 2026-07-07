@@ -2,7 +2,7 @@ package org.zhongweixian.client.websocket;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
@@ -32,15 +32,15 @@ import java.util.concurrent.TimeUnit;
  * 单实例客户端，支持重连，支持自定义心跳
  */
 public class WsClient implements Runnable {
-    private Logger logger = LoggerFactory.getLogger(WsClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(WsClient.class);
 
-    private URI websocketURI;
+    private final URI websocketURI;
     private int port;
     private SslContext sslContext;
-    private EventLoopGroup group = new NioEventLoopGroup();
-    private Bootstrap bootstrap = new Bootstrap();
+    private final MultiThreadIoEventLoopGroup group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
+    private final Bootstrap bootstrap = new Bootstrap();
 
-    private Channel channel;
+    private volatile Channel channel;
 
     /**
      * 心跳时间
@@ -55,17 +55,17 @@ public class WsClient implements Runnable {
     /**
      * 客户端自动重连
      */
-    private Boolean autoReConnect = true;
+    private volatile Boolean autoReConnect = true;
 
     /**
      * 当前重连次数
      */
-    private Integer TRY_TIMES = 0;
+    private int tryTimes = 0;
 
     /**
      * 最大重连次数
      */
-    private Integer MAX_TIME = Integer.MAX_VALUE;
+    private Integer maxTime = Integer.MAX_VALUE;
 
     public WsClient(String url, final String payload, final ConnectionListener listener) throws Exception {
         this.websocketURI = new URI(url);
@@ -95,46 +95,45 @@ public class WsClient implements Runnable {
     }
 
     private void connect() {
-        try {
-            bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
-            ChannelFuture channelFuture = bootstrap.connect(websocketURI.getHost(), port).sync();
-            if (channelFuture.isSuccess()) {
-                TRY_TIMES = 1;
-                channel = channelFuture.channel();
-                logger.info("channel:{} connected , channelFuture result:{}", channel, channelFuture.isSuccess());
-                WebSocketClientHandler clientHandler = (WebSocketClientHandler) channel.pipeline().get("hookedHandler");
-                clientHandler.setHeartCommand(heartCommand);
-                HttpHeaders httpHeaders = new DefaultHttpHeaders();
-                WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(websocketURI, WebSocketVersion.V13,
-                        null, true, httpHeaders);
-                clientHandler.setHandshaker(handshaker);
-                handshaker.handshake(channel);
-                if (StringUtils.isNoneBlank(clientHandler.getPayload())) {
-                    channel.writeAndFlush(new TextWebSocketFrame(clientHandler.getPayload()));
+        while (autoReConnect && tryTimes < maxTime) {
+            ChannelFuture channelFuture = null;
+            try {
+                bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
+                channelFuture = bootstrap.connect(websocketURI.getHost(), port).sync();
+                if (channelFuture.isSuccess()) {
+                    tryTimes = 0;
+                    channel = channelFuture.channel();
+                    logger.info("channel:{} connected", channel);
+                    WebSocketClientHandler clientHandler = (WebSocketClientHandler) channel.pipeline().get("hookedHandler");
+                    clientHandler.setHeartCommand(heartCommand);
+                    HttpHeaders httpHeaders = new DefaultHttpHeaders();
+                    WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(websocketURI, WebSocketVersion.V13,
+                            null, true, httpHeaders);
+                    clientHandler.setHandshaker(handshaker);
+                    handshaker.handshake(channel);
+                    if (StringUtils.isNoneBlank(clientHandler.getPayload())) {
+                        channel.writeAndFlush(new TextWebSocketFrame(clientHandler.getPayload()));
+                    }
+                    channel.closeFuture().sync();
+                }
+            } catch (Exception e) {
+                logger.error("connect {}:{} failed", websocketURI.getHost(), port, e);
+            } finally {
+                if (channel != null && channel.isOpen()) {
+                    channel.close();
                 }
             }
-            channelFuture.channel().closeFuture().sync();
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        } finally {
-            if (channel != null && channel.isOpen()) {
-                channel.close();
-            }
-            if (!autoReConnect || TRY_TIMES >= MAX_TIME) {
+            if (!autoReConnect || tryTimes >= maxTime) {
                 return;
             }
-
             try {
                 TimeUnit.SECONDS.sleep(heart);
             } catch (InterruptedException e) {
-                logger.error(e.getMessage(), e);
-            }
-            if (!autoReConnect) {
+                Thread.currentThread().interrupt();
                 return;
             }
-            logger.info("reconnect {}:{}  for {} times", websocketURI.getHost(), port, TRY_TIMES);
-            TRY_TIMES++;
-            connect();
+            logger.info("reconnect {}:{} for {} times", websocketURI.getHost(), port, tryTimes + 1);
+            tryTimes++;
         }
     }
 
@@ -176,15 +175,15 @@ public class WsClient implements Runnable {
 
 
     public boolean isActive() {
-        return channel == null || channel.isActive();
+        return channel != null && channel.isActive();
     }
 
     public void close() {
         autoReConnect = false;
         if (channel != null && channel.isOpen()) {
             channel.close();
-            group.shutdownGracefully();
         }
+        group.shutdownGracefully();
     }
 
     public Integer getHeart() {
@@ -212,10 +211,10 @@ public class WsClient implements Runnable {
     }
 
     public Integer getMAX_TIME() {
-        return MAX_TIME;
+        return maxTime;
     }
 
-    public void setMAX_TIME(Integer MAX_TIME) {
-        this.MAX_TIME = MAX_TIME;
+    public void setMAX_TIME(Integer maxTime) {
+        this.maxTime = maxTime;
     }
 }

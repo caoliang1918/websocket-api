@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 
 
 public class WsConnection implements Connection {
-    private Logger logger = LoggerFactory.getLogger(WsConnection.class);
+    private static final Logger logger = LoggerFactory.getLogger(WsConnection.class);
 
-    private Channel channel;
+    private final Channel channel;
 
     public WsConnection(Channel channel) {
         this.channel = channel;
@@ -27,7 +27,7 @@ public class WsConnection implements Connection {
 
     @Override
     public void sendText(String payload) {
-        if (channel == null || !channel.isActive()) {
+        if (!isActive()) {
             logger.warn("channel is null or channel is not active");
             return;
         }
@@ -36,38 +36,29 @@ public class WsConnection implements Connection {
 
     @Override
     public void sendByte(byte[] bytes) {
-        if (channel == null || !channel.isActive()) {
+        if (!isActive()) {
             logger.warn("channel is null or channel is not active");
             return;
         }
-        BinaryWebSocketFrame frame = new BinaryWebSocketFrame(Unpooled.wrappedBuffer(bytes));
-        channel.writeAndFlush(frame);
+        channel.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(bytes)));
     }
 
     @Override
     public void sendPing() {
-        if (channel == null || !channel.isActive()) {
+        if (!isActive()) {
             logger.warn("channel is null or channel is not active");
             return;
         }
-        PingWebSocketFrame frame = new PingWebSocketFrame();
-        channel.writeAndFlush(frame);
+        channel.writeAndFlush(new PingWebSocketFrame());
     }
 
     @Override
     public String getId() {
-        if (channel != null) {
-            return channel.id().toString();
-        }
-        return null;
-
+        return channel != null ? channel.id().toString() : null;
     }
 
     @Override
     public boolean isActive() {
-        if (channel != null && channel.isActive()) {
-            return true;
-        }
-        return false;
+        return channel != null && channel.isActive();
     }
 }

@@ -42,7 +42,7 @@ public class SimpleClientHandler extends ChannelInboundHandlerAdapter {
         try {
             listener.onMessage(ctx.channel(), msg.toString());
         } catch (Exception e) {
-            logger.error("read message:{} error:{}", msg, e);
+            logger.error("read message:{} error", msg, e);
         }
     }
 

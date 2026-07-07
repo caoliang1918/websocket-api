@@ -2,7 +2,7 @@ package org.zhongweixian.client.tcp;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Created by caoliang on 2019-10-11
  */
 public class NettyClient implements Runnable {
-    private Logger logger = LoggerFactory.getLogger(NettyClient.class);
+    private final Logger logger = LoggerFactory.getLogger(NettyClient.class);
 
     /**
      * 连接地址
@@ -72,7 +72,7 @@ public class NettyClient implements Runnable {
 
 
     Bootstrap bootstrap = null;
-    EventLoopGroup group = null;
+    MultiThreadIoEventLoopGroup group = null;
     ChannelFuture channelFuture = null;
 
 
@@ -96,9 +96,9 @@ public class NettyClient implements Runnable {
     private void init() {
         bootstrap = new Bootstrap();
         if (authorizationToken.getThreadNums() == null || authorizationToken.getThreadNums() < 1) {
-            group = new NioEventLoopGroup();
+            group = new MultiThreadIoEventLoopGroup(new DefaultThreadFactory("tcp-client-group", true), NioIoHandler.newFactory());
         } else {
-            group = new NioEventLoopGroup(authorizationToken.getThreadNums(), new DefaultThreadFactory(authorizationToken.getThreadName(), 1));
+            group = new MultiThreadIoEventLoopGroup(authorizationToken.getThreadNums(), new DefaultThreadFactory("tcp-client-group", true), NioIoHandler.newFactory());
         }
 
         bootstrap.group(group)

@@ -2,7 +2,7 @@ package org.zhongweixian.client.websocket;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
@@ -17,6 +17,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,14 +33,14 @@ import java.util.concurrent.TimeUnit;
  * 支持批量websocket链接
  */
 public class WebSocketClient {
-    private Logger logger = LoggerFactory.getLogger(WebSocketClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketClient.class);
 
-    private URI websocketURI;
+    private final URI websocketURI;
     private int port;
     private SslContext sslContext;
-    private EventLoopGroup group = null;
-    private Bootstrap bootstrap = null;
-    private Channel channel;
+    private final MultiThreadIoEventLoopGroup group;
+    private final Bootstrap bootstrap;
+    private volatile Channel channel;
 
     private static final int HEART_TIME = 10;
 
@@ -48,7 +49,7 @@ public class WebSocketClient {
         if (threads == null || threads < 0) {
             threads = 0;
         }
-        group = new NioEventLoopGroup(threads);
+        group = new MultiThreadIoEventLoopGroup(threads, new DefaultThreadFactory("ws-client-group", true), NioIoHandler.newFactory());
         bootstrap = new Bootstrap();
 
         this.websocketURI = new URI(url);
@@ -115,7 +116,7 @@ public class WebSocketClient {
     public void close() {
         if (channel != null && channel.isOpen()) {
             channel.close();
-            group.shutdownGracefully();
         }
+        group.shutdownGracefully();
     }
 }

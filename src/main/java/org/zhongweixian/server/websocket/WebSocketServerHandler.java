@@ -15,22 +15,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.entity.Message;
 import org.zhongweixian.listener.ConnectionListener;
+import org.zhongweixian.util.UrlUtil;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 @ChannelHandler.Sharable
 public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
-    private Logger logger = LoggerFactory.getLogger(WebSocketServerHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketServerHandler.class);
 
-
-    private Integer heart;
+    private final Integer heart;
 
     /**
      * 回调消息类
      */
-    private ConnectionListener listener;
+    private final ConnectionListener listener;
 
     public WebSocketServerHandler(Integer heart, ConnectionListener listener) {
         this.heart = heart;
@@ -44,17 +43,13 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
             FullHttpRequest request = (FullHttpRequest) msg;
             HttpHeaders headers = request.headers();
             String uri = request.uri();
-            Map<String, Object> params = getUrlParams(uri);
+            Map<String, Object> params = UrlUtil.parseQuery(uri);
             //如果url包含参数，需要处理
-            if (uri.contains("?")) {
-                String newUri = uri.substring(0, uri.indexOf("?"));
+            String newUri = UrlUtil.stripQuery(uri);
+            if (newUri != null && !newUri.equals(uri)) {
                 request.setUri(newUri);
             }
-            String ip = null;
-
-            // 1. 优先获取 X-Real-IP (Nginx 通常配置这个)
-            ip = headers.get("X-Real-IP");
-            // 2. 如果没有，尝试获取 X-Forwarded-For (可能包含多个IP，取第一个)
+            String ip = headers.get("X-Real-IP");
             if (StringUtils.isBlank(ip)) {
                 String xForwardedFor = headers.get("X-Forwarded-For");
                 if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
@@ -62,9 +57,14 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                     ip = xForwardedFor.split(",")[0].trim();
                 }
             }
-            // 3. 兜底：如果都没有，使用直连地址 (通常是 Nginx 的内网 IP)
-            if (ip == null) {
-                ip = ctx.channel().remoteAddress().toString().replaceFirst("/", "").split(":")[0];
+            // 兜底：如果都没有，使用直连地址 (通常是 Nginx 的内网 IP)
+            if (StringUtils.isBlank(ip)) {
+                String remoteAddress = ctx.channel().remoteAddress().toString();
+                int slashIdx = remoteAddress.indexOf('/');
+                int colonIdx = remoteAddress.lastIndexOf(':');
+                if (slashIdx >= 0 && colonIdx > slashIdx) {
+                    ip = remoteAddress.substring(slashIdx + 1, colonIdx);
+                }
             }
             if (ip != null) {
                 params.put("ip", ip);
@@ -74,7 +74,8 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
         } else if (msg instanceof TextWebSocketFrame) {
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
             try {
-                JSONObject jsonObject = JSONObject.parseObject(frame.text());
+                String text = frame.text();
+                JSONObject jsonObject = JSONObject.parseObject(text);
                 if (jsonObject == null) {
                     return;
                 }
@@ -85,13 +86,11 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                     ctx.channel().writeAndFlush(new TextWebSocketFrame("{\"type\":\"pong\",\"code\":0,\"sequence\":" + Instant.now().toEpochMilli() + "}"));
                     return;
                 }
-                if (jsonObject != null) {
-                    listener.onMessage(ctx.channel(), frame.text());
-                }
+                listener.onMessage(ctx.channel(), text);
             } catch (Exception e) {
-                logger.error("解析json:{} 异常", frame.text(), e);
+                logger.error("解析json异常", e);
                 JSONObject error = new JSONObject();
-                error.put("messgae", e.getMessage());
+                error.put("message", e.getMessage());
                 error.put("code", 500);
                 ctx.channel().writeAndFlush(new TextWebSocketFrame(error.toJSONString()));
             } finally {
@@ -149,30 +148,10 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
                     break;
                 case WRITER_IDLE:
                     break;
-
                 default:
                     break;
             }
         }
         super.userEventTriggered(ctx, evt);
-    }
-
-    private static Map<String, Object> getUrlParams(String url) {
-        Map<String, Object> map = new HashMap<>();
-        url = url.replace("?", ";");
-        if (!url.contains(";")) {
-            return map;
-        }
-        if (url.split(";").length > 0) {
-            String[] arr = url.split(";")[1].split("&");
-            for (String s : arr) {
-                String key = s.split("=")[0];
-                String value = s.split("=")[1];
-                map.put(key, value);
-            }
-            return map;
-        } else {
-            return map;
-        }
     }
 }
