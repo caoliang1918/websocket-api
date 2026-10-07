@@ -9,13 +9,12 @@ import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
+import org.zhongweixian.util.UrlUtil;
 
-import java.util.HashMap;
 import java.util.Map;
 
-@ChannelHandler.Sharable
 public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
-    private Logger logger = LoggerFactory.getLogger(WebSocketClientHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketClientHandler.class);
 
 
     /**
@@ -87,9 +86,9 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
             } else if (object instanceof FullHttpRequest) {
                 FullHttpRequest request = (FullHttpRequest) object;
                 String uri = request.uri();
-                Map<String, Object> params = getUrlParams(uri);
-                if (uri.contains("?")) {
-                    String newUri = uri.substring(0, uri.indexOf("?"));
+                Map<String, Object> params = UrlUtil.parseQuery(uri);
+                String newUri = UrlUtil.stripQuery(uri);
+                if (newUri != null && !newUri.equals(uri)) {
                     request.setUri(newUri);
                 }
                 connectionListener.connect(channel, params);
@@ -105,9 +104,8 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.error("连接中断, channelId:{}, active : {}", ctx.channel().id(), ctx.channel().isActive());
+        logger.warn("连接中断, channelId:{}, active : {}", ctx.channel().id(), ctx.channel().isActive());
         connectionListener.onClose(ctx.channel(), 500, "channelInactive");
-        ctx.close();
     }
 
     @Override
@@ -188,25 +186,5 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
     public void setHeartCommand(String heartCommand) {
         this.heartCommand = heartCommand;
-    }
-
-    private static Map<String, Object> getUrlParams(String url) {
-        Map<String, Object> params = new HashMap<>();
-        url = url.replace("?", ";");
-        if (!url.contains(";")) {
-            return params;
-        }
-        if (url.split(";").length > 0) {
-            String[] arr = url.split(";")[1].split("&");
-            for (String s : arr) {
-                String key = s.split("=")[0];
-                String value = s.split("=")[1];
-                params.put(key, value);
-            }
-            return params;
-
-        } else {
-            return params;
-        }
     }
 }

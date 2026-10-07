@@ -4,11 +4,12 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zhongweixian.listener.ConnectionListener;
@@ -21,10 +22,9 @@ import java.net.InetSocketAddress;
 public class UdpServer {
     private Logger logger = LoggerFactory.getLogger(UdpServer.class);
 
-    private EventLoopGroup workGroup = null;
+    private MultiThreadIoEventLoopGroup workerGroup = null;
 
     private Integer port;
-
 
     private ConnectionListener connectionListener;
 
@@ -35,11 +35,10 @@ public class UdpServer {
 
 
     public void start() {
-        workGroup = new NioEventLoopGroup();
-
+        workerGroup = new MultiThreadIoEventLoopGroup(2, new DefaultThreadFactory("udp-worker-group", true), NioIoHandler.newFactory());
         Bootstrap bootstrap = new Bootstrap();
         try {
-            bootstrap.group(workGroup).channel(NioDatagramChannel.class).option(ChannelOption.SO_BROADCAST, true).handler(new SimpleChannelInboundHandler<DatagramPacket>() {
+            bootstrap.group(workerGroup).channel(NioDatagramChannel.class).option(ChannelOption.SO_BROADCAST, true).handler(new SimpleChannelInboundHandler<DatagramPacket>() {
                 @Override
                 protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket datagramPacket) throws Exception {
                     //具体怎么拆包？
@@ -73,8 +72,8 @@ public class UdpServer {
     }
 
     public void close() {
-        if (workGroup != null) {
-            workGroup.shutdownGracefully();
+        if (workerGroup != null) {
+            workerGroup.shutdownGracefully();
         }
     }
 
