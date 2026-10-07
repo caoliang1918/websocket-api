@@ -44,7 +44,7 @@ public class G711UCodec {
             ulaw_to_linear[i] = ulaw2linear((byte) i);
         }
         // 初始化ulaw2linear表
-        for (int i = 0; i < 65535; i++) {
+        for (int i = 0; i < 65536; i++) {
             linear_to_ulaw[i] = linear2ulaw((short) i);
         }
     }

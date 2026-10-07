@@ -172,7 +172,7 @@ public class NettyClient implements Runnable {
      */
     public void sendMessage(final String message) {
         if (channel == null || !channel.isActive()) {
-            logger.warn("channel is null or clone {}:{}", host, port);
+            logger.warn("channel is null or closed {}:{}", host, port);
             return;
         }
         channel.writeAndFlush(message);
@@ -185,7 +185,7 @@ public class NettyClient implements Runnable {
      */
     public void sendMessageListener(final String message) {
         if (channel == null || !channel.isActive()) {
-            logger.warn("channel is null or clone {}:{}", host, port);
+            logger.warn("channel is null or closed {}:{}", host, port);
             return;
         }
         channel.writeAndFlush(message).addListener(new ChannelFutureListener() {

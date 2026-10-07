@@ -111,6 +111,8 @@ public class WsClient implements Runnable {
                             null, true, httpHeaders);
                     clientHandler.setHandshaker(handshaker);
                     handshaker.handshake(channel);
+                    // 等待握手完成后再发送业务 payload，否则此时 WebSocket 帧编解码器尚未装入 pipeline
+                    clientHandler.handshakeFuture().sync();
                     if (StringUtils.isNoneBlank(clientHandler.getPayload())) {
                         channel.writeAndFlush(new TextWebSocketFrame(clientHandler.getPayload()));
                     }
@@ -144,7 +146,7 @@ public class WsClient implements Runnable {
      */
     public void sendMessage(String message) {
         if (channel == null || !channel.isActive()) {
-            logger.warn("channel is null or clone {}:{}", websocketURI.getHost(), port);
+            logger.warn("channel is null or closed {}:{}", websocketURI.getHost(), port);
             return;
         }
         channel.writeAndFlush(new TextWebSocketFrame(message));
@@ -157,7 +159,7 @@ public class WsClient implements Runnable {
      */
     public void sendMessageListener(String message) {
         if (channel == null || !channel.isActive()) {
-            logger.warn("channel is null or clone {}:{}", websocketURI.getHost(), port);
+            logger.warn("channel is null or closed {}:{}", websocketURI.getHost(), port);
             return;
         }
         channel.writeAndFlush(new TextWebSocketFrame(message)).addListener(new ChannelFutureListener() {

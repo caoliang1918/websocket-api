@@ -96,6 +96,10 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
             } finally {
                 super.channelRead(ctx, msg);
             }
+        } else {
+            // 其余帧(Binary/Ping/Pong/Close)继续向后传递，交给 WebSocketServerProtocolHandler 处理，
+            // 否则这些帧既不会被释放(内存泄漏)，也无法触发 Netty 的自动 pong/关闭握手
+            ctx.fireChannelRead(msg);
         }
     }
 
@@ -117,14 +121,16 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //异常时断开连接
+        logger.error("websocket exception, channelId:{}", ctx.channel().id(), cause);
         listener.onClose(ctx.channel(), 501, cause.getMessage());
+        ctx.close();
     }
 
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-        logger.debug("websocket client:{} , connect success", ctx.channel().id());
-        listener.connect(ctx.channel());
+        logger.debug("websocket client:{} , registered", ctx.channel().id());
+        // connect 回调统一在握手完成(收到 FullHttpRequest)时触发，避免重复回调
         ctx.fireChannelRegistered();
     }
 

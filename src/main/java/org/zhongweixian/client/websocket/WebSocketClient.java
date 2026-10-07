@@ -98,16 +98,22 @@ public class WebSocketClient {
         clientHandler.setHandshaker(handshaker);
         handshaker.handshake(channel);
         //可以使用ChannelFuture来做断开检测
-        ChannelFuture channelFuture = clientHandler.handshakeFuture().sync();
-        channelFuture.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                logger.info("channel:{} connected , channelFuture result:{}", channel, channelFuture.isSuccess());
-                if (StringUtils.isNoneBlank(payload)) {
-                    channel.writeAndFlush(new TextWebSocketFrame(payload));
+        try {
+            ChannelFuture channelFuture = clientHandler.handshakeFuture().sync();
+            channelFuture.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    logger.info("channel:{} connected , channelFuture result:{}", channel, channelFuture.isSuccess());
+                    if (StringUtils.isNoneBlank(payload)) {
+                        channel.writeAndFlush(new TextWebSocketFrame(payload));
+                    }
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            // 握手失败时关闭已建立的连接，避免 channel 泄漏
+            channel.close();
+            throw e;
+        }
         this.channel = channel;
         return new WsConnection(channel);
     }
